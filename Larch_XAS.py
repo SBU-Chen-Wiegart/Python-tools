@@ -142,5 +142,5 @@ def merge_scan():
 
 
 if __name__ == '__main__':
-    main()
-    # merge_scan()
+    # main()
+    merge_scan()
