@@ -11,26 +11,41 @@ import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 from larch.xafs import pre_edge
-from larch.io import read_ascii, write_ascii, merge_groups, read_athena
+from larch.io import read_ascii, write_ascii, merge_groups, read_athena, create_athena
 from numba import njit, jit
 import palettable.colorbrewer.diverging as pld
+import time as t
+from random import randint
 
-FILE_TYPE = '.txt'
-INPUT_PATH = r'D:\Research data\Conversion coating\202205\20220511 ISS samples'
+# Constant
+FILE_TYPE = '.prj'
+INPUT_PATH = r'D:\Research data\Conversion coating\202203\20211029 BMM\merge_test'
+IF_NOR = False   # Do normalization
+SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol, edge, label, etc.
+
 FILE_INDEX = 6
 OFFSET = 0
 SAMPLE_LIST = [7, 8, 9, 10, 11, 12, 13, 14, 15]     # [] for default or [1, 7, 5, 3] for index list you want
 STANDARD_LIST = [9, 11, 13, 15]
-IF_SAVE = False
+IF_SAVE = True
 OUTPUT_FILENAME = 'merge_mu_01.png'
+PALETTE = pld.Spectral_4_r
+CMAP = PALETTE.mpl_colormap
 
 
 def main():
-    # plt.close('all')
-    palette = pld.Spectral_4_r
-    cmap = palette.mpl_colormap
-
     files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
+    # plot_xas(files)
+    new_merge_project = create_athena(f'default.prj')
+    filename = ''
+    for index, file_prj in enumerate(files):
+        if 'Created' not in file_prj.name:
+            merge_scan(file_prj, new_merge_project)
+            filename = file_prj.name
+    new_merge_project.save(f'{Path(INPUT_PATH)}/Created_{filename[:filename.find("b") + 3]}.prj')
+
+
+def plot_xas(files):
     f_list = []
     print("==============================")
     print('Files')
@@ -60,7 +75,7 @@ def main():
             sample_index = i + 7
             sample_name = f0_keys[sample_index]
             mu = getattr(f0, f0_keys[sample_index])
-            ax1.plot(energy, mu + OFFSET * increment, color=cmap(color_idx[increment]), label=sample_name)
+            ax1.plot(energy, mu + OFFSET * increment, color=CMAP(color_idx[increment]), label=sample_name)
             increment += 1
             print('{:>3}     {}'.format(sample_index, sample_name))
     else:
@@ -69,9 +84,9 @@ def main():
             sample_name = f0_keys[sample_index]
             mu = getattr(f0, f0_keys[sample_index])
             if sample_index in STANDARD_LIST:
-                ax1.plot(energy, mu + OFFSET * increment, '--', color=cmap(color_idx[increment]), label=sample_name)
+                ax1.plot(energy, mu + OFFSET * increment, '--', color=CMAP(color_idx[increment]), label=sample_name)
             else:
-                ax1.plot(energy, mu + OFFSET * increment, color=cmap(color_idx[increment]), label=sample_name)
+                ax1.plot(energy, mu + OFFSET * increment, color=CMAP(color_idx[increment]), label=sample_name)
             increment += 1
             print('{:>3}     {}'.format(sample_index, sample_name))
 
@@ -84,29 +99,18 @@ def main():
     plt.legend(loc='lower right')
     if IF_SAVE:
         plt.savefig(OUTPUT_FILENAME, dpi=300, transparent=True)
-    plt.draw()
     plt.show()
 
 
-def merge_scan():
+def merge_scan(file_prj, new_merge_project):
     """
-    TODO: import list
+    :param file_prj: a prj file
+    :return: None
     """
-    file_path = r'D:\Research data\Conversion coating\202203\20211029 BMM\Cu-b26_coating_on_Al'
-    file_folder = Path(file_path)
-    file_name = 'Cu-b26-4_Al_Cu20_PAMAM.prj'
-    file_prj = file_folder/file_name
+    filename = file_prj.name
+    print(f'\nWhether the file "{filename}" exists?', file_prj.exists())
 
-    # files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
-    # f_list = []
-    # print("==============================")
-    # print('Files')
-    # print("------------------------------")
-    # for index, file in enumerate(files):
-    #     f_list.append(file)
-    #     print(index, file)
-
-    print(f'Whether the file ({file_name}) exists?', file_prj.exists())
+    # Read Athena project
     scans = read_athena(f'{file_prj}')
     # print(scans.groups)
     scans_namelist = []
@@ -120,27 +124,53 @@ def merge_scan():
         scans_grouplist.append(group)
         print(name, group)
 
-    print("\n==============================")
-    print('Athena parameters')
-    print("------------------------------")
-    for scan_attribute in dir(scans_grouplist[0]):
-        print(scan_attribute, type(getattr(scans_grouplist[0], scan_attribute)))
+    # Create Athena project
+    first_scan_information = scans_grouplist[0]
+    # new_merge_project = create_athena(f'{filename[:filename.find("b")+3]}.prj')
+
+    if SHOW_DATA_INFORMATION:
+        print("\n==============================")
+        print(f'Athena parameters in {scans_namelist[0]}')
+        print("------------------------------")
+        for scan_attribute in dir(first_scan_information):
+            print(scan_attribute, type(getattr(first_scan_information, scan_attribute)))
 
     for index, scan in enumerate(scans_grouplist):
-        pre_edge(scan.energy, scan.mu, group=scan)   # Do normalization
-        plt.plot(scan.energy, scan.norm, label=scan.label)
+        if IF_NOR:  # Do normalization
+            pre_edge(scan.energy, scan.mu, group=scan)
+            plt.plot(scan.energy, scan.norm, label=scan.label)
+        else:
+            plt.plot(scan.energy, scan.mu, label=scan.label)
 
     merges = merge_groups(scans_grouplist)
-    pre_edge(merges.energy, merges.mu, group=merges)  # Do normalization
-    plt.plot(merges.energy, merges.norm, label=f'{scans_grouplist[0].label[:-4]}_merged')
+    if IF_NOR:  # Do normalization
+        pre_edge(merges.energy, merges.mu, group=merges)
+        plt.plot(merges.energy, merges.norm, label=f'{first_scan_information.label[:-4]}_merged')
+    else:
+        plt.plot(merges.energy, merges.mu, label=f'{first_scan_information.label[:-4]}_merged')
+    if SHOW_DATA_INFORMATION:
+        print("\n==============================")
+        print(f'Merged parameters in {first_scan_information.label[:-4]}_merged')
+        print("------------------------------")
+        for scan_attribute in dir(merges):
+            print(scan_attribute, type(getattr(merges, scan_attribute)))
 
-    plt.xlabel('Energy')
-    plt.ylabel('mu')
-    plt.title(f'{scans_grouplist[0].atsym} {scans_grouplist[0].edge}-edge')
-    plt.legend()
-    plt.show()
+    # Replace '-' with '_' because '-' will cause error
+    scan_name = f'{first_scan_information.label[:-4]}_merged'.replace('-', '_')
+    new_merge_project.add_group(merges, scan_name)
+
+    # Figure information
+    plt.xlabel('$\mathregular{Energy\ (eV)}$', fontsize=12)
+    plt.ylabel('$\mathregular{Normalized\ \mu(E)}$', fontsize=12)
+    plt.title(f'{first_scan_information.atsym} {first_scan_information.edge}-edge')
+    plt.legend(loc='lower right', framealpha=1, frameon=False)
+    if IF_SAVE:
+        plt.savefig("{}/{}.png".format(Path(INPUT_PATH), first_scan_information.label[:-4]), dpi=300, transparent=False)
+        print('\n=================================================================================')
+        print(f'Save merge image into ---> {first_scan_information.label[:-4]}.png')
+        print('=================================================================================')
+    plt.close()
 
 
 if __name__ == '__main__':
-    # main()
-    merge_scan()
+    main()
