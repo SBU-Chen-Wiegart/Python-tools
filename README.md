@@ -14,7 +14,7 @@ Data Analysis Tools for X-ray Spectroscopy
 
 ### [Install](https://xraypy.github.io/xraylarch/installation.html)
 * Download [Anaconda](https://www.anaconda.com/)
-* Download athena_project.py
+* Download athena_project.py and put it at the same folder with Larch_XAS.py
 
 Within a shell:
 
