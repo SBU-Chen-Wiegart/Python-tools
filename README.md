@@ -3,9 +3,9 @@ Data Analysis Tools for X-ray Spectroscopy
 
 ## Table of Contents
 
-- [Larch_XAS.py](#larchXASpy)
+- [Larch_XAS.py](#larch-XASpy)
 - [CFNXRD2Jade.py](#cFNXRD2Jadepy)
-- [plot_xrd_SSID_insitu.py](#plotxrdSSIDinsitupy)
+- [plot_xrd_SSID_insitu.py](#plot-xrd-SSID-insitupy)
 
 ## Larch_XAS.py
 - Documentation: http://xraypy.github.io/xraylarch
