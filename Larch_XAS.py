@@ -12,6 +12,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from larch.xafs import pre_edge
 from larch.io import read_ascii, write_ascii, merge_groups, read_athena, create_athena
+import athena_project
 from numba import njit, jit
 import palettable.colorbrewer.diverging as pld
 import time as t
@@ -36,7 +37,8 @@ CMAP = PALETTE.mpl_colormap
 def main():
     files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
     # plot_xas(files)
-    new_merge_project = create_athena(f'default.prj')
+    # new_merge_project = create_athena(f'default.prj')     # Call the athena_project.py in larch.io
+    new_merge_project = athena_project.create_athena(f'default.prj')    # Call the athena_project.py in current folder
     filename = ''
     for index, file_prj in enumerate(files):
         if 'Created' not in file_prj.name:
@@ -126,7 +128,6 @@ def merge_scan(file_prj, new_merge_project):
 
     # Create Athena project
     first_scan_information = scans_grouplist[0]
-    # new_merge_project = create_athena(f'{filename[:filename.find("b")+3]}.prj')
 
     if SHOW_DATA_INFORMATION:
         print("\n==============================")
