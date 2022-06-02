@@ -47,4 +47,3 @@ Pending
 
 ## License
 
-MIT © Richard McRichface
