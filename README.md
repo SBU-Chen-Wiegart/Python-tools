@@ -36,7 +36,7 @@ conda install -y -c conda-forge wxpython pymatgen tomopy pycifrw
 ```
 pip install xraylarch
 ```
-5. Set Python Interpreters as Anaconda\envs\xraylarch\python.exe
+5. Set Conda Environment by changing Python Interpreters as Anaconda\envs\xraylarch\python.exe 
 
 ## CFNXRD2Jade.py
 
