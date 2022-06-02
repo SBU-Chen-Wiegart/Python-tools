@@ -8,9 +8,10 @@ Data Analysis Tools for X-ray Spectroscopy
 - [plot xrd SSID insitu.py](#plot-xrd-SSID-insitupy)
 
 ## Larch XAS.py
+> Citation: M. Newville, Larch: An Analysis Package For XAFS And Related Spectroscopies. Journal of Physics: Conference Series, 430:012007 (2013).
 - Documentation: http://xraypy.github.io/xraylarch
 - Code: http://github.com/xraypy/xraylarch
-- Citation: M. Newville, Larch: An Analysis Package For XAFS And Related Spectroscopies. Journal of Physics: Conference Series, 430:012007 (2013).
+
 ### [Install](https://xraypy.github.io/xraylarch/installation.html)
 * Download [Anaconda](https://www.anaconda.com/)
 * Download athena_project.py
