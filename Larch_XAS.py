@@ -14,17 +14,17 @@ import matplotlib.pyplot as plt
 from larch.xafs import pre_edge
 from larch.io import read_ascii, write_ascii, merge_groups, read_athena, create_athena
 import athena_project
-from numba import njit, jit
 import palettable.colorbrewer.diverging as pld
-import time as t
-from random import randint
+
 
 # Constant
 FILE_TYPE = '.prj'  # ".prj" if you want to merge the scans; ".txt" if you want to plot the scans
 INPUT_PATH = r'D:\Research data\Conversion coating\202203\20211029 BMM\merge_test'
 
 # Merge Constant
+SKIP_SCANS = ['Cu_b26_4_Al_Cu20_PAMAM_NaCl_30mins_002']     # [] if scans are good or adding scans you want to exclude
 IF_NOR = False   # Do normalization
+ADD_STD = False     # Add plus and minus standard lines
 SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol, edge, label, etc.
 
 # Plot Constant
@@ -41,7 +41,7 @@ PALETTE = pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
 OFFSET = 0  # Value you want to add to an offset for each curve.
 ENERGY_RANGE = (17900, 18301)   # () for default
-ENERGY_INTERVAL = 100   # This parameter work when you set a ENERGY_RANGE
+ENERGY_INTERVAL = 100   # This parameter works only when you set a ENERGY_RANGE
 IF_SAVE = True
 OUTPUT_FILENAME = 'test_plot'
 
@@ -160,9 +160,10 @@ def merge_scan(file_prj, new_merge_project):
     print('Scan name')
     print("------------------------------")
     for name, group in scans._athena_groups.items():
-        scans_namelist.append(name)
-        scans_grouplist.append(group)
-        print(name, group)
+        if name not in SKIP_SCANS:
+            scans_namelist.append(name)
+            scans_grouplist.append(group)
+            print(name, group)
 
     # Print scan information
     first_scan_information = scans_grouplist[0]
@@ -174,6 +175,7 @@ def merge_scan(file_prj, new_merge_project):
             print(scan_attribute, type(getattr(first_scan_information, scan_attribute)))
 
     # Plot scans
+    fig, ax = plt.subplots()
     for index, scan in enumerate(scans_grouplist):
         if IF_NOR:  # Do normalization
             pre_edge(scan.energy, scan.mu, group=scan)
@@ -186,8 +188,18 @@ def merge_scan(file_prj, new_merge_project):
     if IF_NOR:  # Do normalization
         pre_edge(merges.energy, merges.mu, group=merges)
         plt.plot(merges.energy, merges.norm, label=f'{first_scan_information.label[:-4]}_merged')
+        if ADD_STD:
+            plt.plot(merges.energy, merges.norm + merges.mu_std * merges.norm / merges.mu, '-',
+                     label=f'{first_scan_information.label[:-4]}_merged+std')
+            plt.plot(merges.energy, merges.norm - merges.mu_std * merges.norm / merges.mu, '-',
+                     label=f'{first_scan_information.label[:-4]}_merged-std')
     else:
         plt.plot(merges.energy, merges.mu, label=f'{first_scan_information.label[:-4]}_merged')
+        if ADD_STD:
+            plt.plot(merges.energy, merges.mu + merges.mu_std, '-',
+                     label=f'{first_scan_information.label[:-4]}_merged+std')
+            plt.plot(merges.energy, merges.mu - merges.mu_std, '-',
+                     label=f'{first_scan_information.label[:-4]}_merged-std')
     if SHOW_DATA_INFORMATION:
         print("\n==============================")
         print(f'Merged parameters in {first_scan_information.label[:-4]}_merged')
@@ -195,11 +207,12 @@ def merge_scan(file_prj, new_merge_project):
         for scan_attribute in dir(merges):
             print(scan_attribute, type(getattr(merges, scan_attribute)))
 
-    # Replace '-' with '_' because '-' will cause error and add the merge into the new prj
+    # Replace '-' with '_' because '-' will cause error
     scan_name = f'{first_scan_information.label[:-4]}_merged'.replace('-', '_')
-    new_merge_project.add_group(merges, scan_name)
+    new_merge_project.add_group(merges, scan_name)  # Add the merge into the new prj
 
     # Figure information
+    ax.set_xlim((merges.energy.min() // 1 + 1, merges.energy.max() // 1 - 1))
     plt.xlabel('$\mathregular{Energy\ (eV)}$', fontsize=12)
     plt.ylabel('$\mathregular{Normalized\ \mu(E)}$', fontsize=12)
     plt.title(f'{first_scan_information.atsym} {first_scan_information.edge}-edge')
