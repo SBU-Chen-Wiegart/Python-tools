@@ -41,10 +41,10 @@ pip install xraylarch
 5. Set Conda Environment by changing Python Interpreters as Anaconda\envs\xraylarch\python.exe 
 
 ## CFNXRD2Jade.py
-Pending
+Coming soon
 
 ## plot xrd SSID insitu.py
-Pending
+Coming soon
 
 ## License
 
