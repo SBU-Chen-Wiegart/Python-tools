@@ -7,26 +7,24 @@ Github source: https://github.com/xraypy/xraylarch
 Color palettes for Python: https://jiffyclub.github.io/palettable/#palette-interface
 """
 
-
 import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
-from larch.xafs import pre_edge
+from xraydb import guess_edge, xray_edge
+from larch.xafs import pre_edge, find_e0
 from larch.io import read_ascii, write_ascii, merge_groups, read_athena, create_athena, write_group
 import athena_project
-from athena_project import AthenaProject
 import palettable.colorbrewer.diverging as pld
 from collections import defaultdict
 
 # Constant
-FILE_TYPE = ''  # ".prj" for merging fluorescence scans; ".txt" for plotting scans; '' for merging transmission scans
-INPUT_PATH = r'D:\Research data\SSID\202206\20220610 BMM'
-
+FILE_TYPE = '.prj'  # ".prj" for merging fluorescence scans; '' for merging transmission scans; ".txt" for plotting scans
+INPUT_PATH = r'D:\Research data\SSID\202206\20220610 BMM\b31-pure NbAl'
 
 # Merged Constant
-SKIP_SCANS = []     # [] if scans are good or adding scans you want to exclude
-IF_NOR = False   # Do normalization
-ADD_DEV = False     # Add plus and minus standard deviation lines
+SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
+IF_NOR = False   # Do normalization for fluorescence scans
+ADD_DEV = False     # Add plus and minus standard deviation lines for fluorescence scans
 SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol, edge, label, etc.
 
 # Plot Constant
@@ -38,7 +36,7 @@ FILE_INDEX = 1  # Which file in file list you want to plot
 SAMPLE_LIST = []     # [] for default or [1, 7, 5, 3] for a index list you want to plot
 STANDARD_LIST = []      # [] if no standards in the SAMPLE_LIST or [5, 3] in the SAMPLE_LIST become dash lines
 FIGURE_SIZE = (6.4, 4.8)  # Cheng-hung uses (6, 7.5), but the default is (6.4, 4.8)
-SAMPLE_LABEL = []  # [] for default or adding a specific name list
+SAMPLE_LABEL = []  # [] for default or add a specific name list
 PALETTE = pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
 OFFSET = 0  # Value you want to add to an offset for each curve.
@@ -54,15 +52,19 @@ def main():
     if FILE_TYPE == '.prj':
         # new_merge_project = create_athena(f'default.prj')     # Call the athena_project.py in larch.io
         new_merge_project = athena_project.create_athena(f'default.prj')    # Call athena_project.py in current folder
-        filename = ''
+
         for index, file_prj in enumerate(files):
             if 'Created' not in file_prj.name:
                 merge_scan(file_prj, new_merge_project)
-                filename = file_prj.name
-        new_merge_project.save(f'{Path(INPUT_PATH)}/Created_{filename[:filename.find("b") + 3]}.prj')
+
+        new_merge_project.save(f'{Path(INPUT_PATH)}/Created_group.prj')
         print('\n=================================================================================')
-        print(f'Save merge project into ---> Created_{filename[:filename.find("b") + 3]}.prj')
+        print(f'Save merge project into ---> Created_group.prj')
         print('=================================================================================')
+
+        # Call Path again to grab the created athena project
+        files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
+        calibrate_energy(files)
 
     elif FILE_TYPE == '.txt':
         plot_xas(files)
@@ -70,29 +72,40 @@ def main():
     else:
         new_merge_project = athena_project.create_athena(f'default.prj')  # Call athena_project.py in current folder
 
+        # Create each prj
         read_transmission(files)
 
-        files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
+        # Create a group prj containing all sample data
+        files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')  # Import input path to read prj files which have been processed
         for index, file_prj in enumerate(files):
             if '.prj' in file_prj.name and 'Created' not in file_prj.name:
-                group = read_ascii(file_prj)
-
+                group = read_ascii(f'{file_prj}')       # <------------------------- take care, not read_athena
+                group.filename = group.filename[:-4]    # <------------------------- take care, rename group filename
                 if SHOW_DATA_INFORMATION:
-                    scan_attribute = group.__dir__()  # Make a list
-                    for attribute_index, key in enumerate(scan_attribute):
-                        print(f'{attribute_index}, {key}, {type(getattr(group, scan_attribute[attribute_index]))}')
+                    print("\n==============================")
+                    print(f'Scan attributes in {group.filename}')
+                    print("------------------------------")
+                    show_data_information(group)
 
                 # Replace special characters because they might cause error
-                filename = f'{file_prj.name[:-4]}'.replace('-', '_').replace('(', '').replace(')', '')
-                new_merge_project.add_group(group, filename)
+                sample_name = f'{group.filename}'.replace('-', '_').replace('(', '').replace(')', '')
+                new_merge_project.add_group(group, sample_name)
 
         new_merge_project.save(f'{Path(INPUT_PATH)}/Created_transmission_group.prj')
         print('\n=================================================================================')
-        print(f'Save merge project into ---> Created_Created_transmission.prj')
+        print(f'Save merge project into ---> Created_transmission_group.prj')
         print('=================================================================================')
+
+        # Call Path again to grab the created athena project
+        files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
+        calibrate_energy(files)
 
 
 def plot_xas(files):
+    """
+    :param files: txt, a txt file with organized dataset output from Athena
+    :return: None
+    """
     f_list = []
     print("==============================")
     print('Files')
@@ -177,8 +190,6 @@ def merge_scan(file_prj, new_merge_project):
 
     # Read Athena project
     scans = read_athena(f'{file_prj}')
-    # print(scans.groups)
-    scans_namelist = []
     scans_grouplist = []    # Each scan is a group
 
     # Print each scan name in the prj file
@@ -187,7 +198,6 @@ def merge_scan(file_prj, new_merge_project):
     print("------------------------------")
     for name, group in scans._athena_groups.items():
         if name not in SKIP_SCANS:
-            scans_namelist.append(name)
             scans_grouplist.append(group)
             print(name, group)
 
@@ -195,17 +205,17 @@ def merge_scan(file_prj, new_merge_project):
     first_scan_information = scans_grouplist[0]
     if SHOW_DATA_INFORMATION:
         print("\n==============================")
-        print(f'Athena parameters in {scans_namelist[0]}')
+        print(f'Athena parameters in {first_scan_information.label}')
         print("------------------------------")
-        for scan_attribute in dir(first_scan_information):
-            print(scan_attribute, type(getattr(first_scan_information, scan_attribute)))
+
+        show_data_information(first_scan_information)
 
     # Plot scans
     fig, ax = plt.subplots()
     for index, scan in enumerate(scans_grouplist):
         if IF_NOR:  # Do normalization
             pre_edge(scan.energy, scan.mu, group=scan)
-            plt.plot(scan.energy, scan.norm, label=scan.label)
+            plt.plot(scan.energy, scan.flat, label=scan.label)
         else:
             plt.plot(scan.energy, scan.mu, label=scan.label)
 
@@ -213,31 +223,43 @@ def merge_scan(file_prj, new_merge_project):
     merges = merge_groups(scans_grouplist)
     if IF_NOR:  # Do normalization
         pre_edge(merges.energy, merges.mu, group=merges)
-        plt.plot(merges.energy, merges.norm, label=f'{first_scan_information.label[:-4]}_merged')
+        plt.plot(merges.energy, merges.flat, label=f'{first_scan_information.label[:-4]}_merged')
         if ADD_DEV:
-            plt.plot(merges.energy, merges.norm + merges.mu_std * merges.norm / merges.mu, '-',
+            plt.plot(merges.energy, merges.flat + merges.mu_std * merges.flat / merges.mu, '-',
                      label=f'{first_scan_information.label[:-4]}_merged+std')
-            plt.plot(merges.energy, merges.norm - merges.mu_std * merges.norm / merges.mu, '-',
+            plt.plot(merges.energy, merges.flat - merges.mu_std * merges.flat / merges.mu, '-',
                      label=f'{first_scan_information.label[:-4]}_merged-std')
     else:
+        # Add e0, atom, and edge information
+        e0 = find_e0(merges.energy, mu=merges.mu, group=merges)
+        atsym, edge = guess_edge(merges.e0)
+        merges.atsym = atsym
+        merges.edge = edge
+
         plt.plot(merges.energy, merges.mu, label=f'{first_scan_information.label[:-4]}_merged')
         if ADD_DEV:
             plt.plot(merges.energy, merges.mu + merges.mu_std, '-',
                      label=f'{first_scan_information.label[:-4]}_merged+std')
             plt.plot(merges.energy, merges.mu - merges.mu_std, '-',
                      label=f'{first_scan_information.label[:-4]}_merged-std')
+
     if SHOW_DATA_INFORMATION:
         print("\n==============================")
         print(f'Merged parameters in {first_scan_information.label[:-4]}_merged')
         print("------------------------------")
-        for scan_attribute in dir(merges):
-            print(scan_attribute, type(getattr(merges, scan_attribute)))
+
+        show_data_information(merges)
+
+        print('Atomic system:', merges.atsym)
+        print('E0:', merges.e0)
+        print('edge:', merges.edge)
+        print('Xray edge:', xray_edge(merges.atsym, merges.edge)[0])
 
     # Replace '-' with '_' because '-' will cause error
     scan_name = f'{first_scan_information.label[:-4]}_merged'.replace('-', '_')
     new_merge_project.add_group(merges, scan_name)  # Add the merge into the new prj
 
-    # Figure information
+    # Plotting format
     ax.set_xlim((merges.energy.min() // 1 + 1, merges.energy.max() // 1 - 1))
     plt.xlabel('$\mathregular{Energy\ (eV)}$', fontsize=12)
     plt.ylabel('$\mathregular{\chi\mu(E)}$', fontsize=12)
@@ -252,12 +274,16 @@ def merge_scan(file_prj, new_merge_project):
 
 
 def read_transmission(files):
+    """
+    :param files: txt file, a txt file from the current folder
+    :return: None
+    """
     scan_dictionary = defaultdict(list)
     print("==============================")
-    print('Files')
+    print('Index Files')
     print("------------------------------")
 
-    # Create scan dictionary and each item contains energy, scan1, scan2, scan3, etc...
+    # Create scan dictionary and each item contains energy, reference, scan1, scan2, scan3, etc...
     for index, scan in enumerate(files):
         scan = scan.resolve()  # Make the path absolute, resolving any symlinks
         scanname = scan.name
@@ -267,52 +293,61 @@ def read_transmission(files):
 
             if SHOW_DATA_INFORMATION:
                 print("\n==============================")
-                print(f'Scan attributes in {scan.filename}')
+                print(f'Scan attributes in {scanname}')
                 print("------------------------------")
                 scan_header = str(scan.header)
                 scan_plot_hint_index = scan_header.find('# Scan.plot_hint')
                 print(scan_header[scan_plot_hint_index: scan_header.find(',', scan_plot_hint_index)])
                 print('Data columns:', scan.array_labels)
-                scan_attribute = scan.__dir__()  # Make a list
-                for attribute_index, key in enumerate(scan_attribute):
-                    print(f'{attribute_index}, {key}, {type(getattr(scan, scan_attribute[attribute_index]))}')
+                show_data_information(scan)
                 print('')
 
             # Append energy, mu
-            if f'{scanname[:-4]}_energy_mu' not in scan_dictionary:
-                scan_dictionary[f'{scanname[:-4]}_energy_mu'] = []
-                scan_dictionary[f'{scanname[:-4]}_energy_mu'].append(scan.energy)
-            if f'{scanname[:-4]}_00{scanname[-1]}' not in SKIP_SCANS:
-                scan_dictionary[f'{scanname[:-4]}_energy_mu'].append(np.log(scan.i0 / scan.it))
+            sample_name = scanname[:-4]
+            if f'{sample_name}_energy_mu' not in scan_dictionary:
+                scan_dictionary[f'{sample_name}_energy_mu'] = []
+                scan_dictionary[f'{sample_name}_energy_mu'].append(scan.energy)                   # <--- Energy
+                scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.it / scan.ir))     # <--- Reference
+            tens_digit = int(scanname[-2:]) // 10 * 10
+            units_digit = int(scanname[-2:]) % 10
+            if f'{sample_name}_00{tens_digit + units_digit}' not in SKIP_SCANS:
+                scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.i0 / scan.it))     # <--- Transmission
 
-    # Append merged data, so each item will contain energy, scan1, scan2, scan3, etc... and a merged scan.
+    # Append merged data, so each item will contain energy, reference, scan1, scan2, scan3, etc... and a merged scan.
     print("\n==============================")
     print('Scan plot')
     print("------------------------------")
 
     for sample_data in scan_dictionary:
         fig, ax = plt.subplots(1, 1, figsize=FIGURE_SIZE)   # Each figure should have its own format
-        merge = np.mean(scan_dictionary[sample_data][1:], axis=0)   # Do the merge
+        merge = np.mean(scan_dictionary[sample_data][2:], axis=0)   # <------------------------------- Merged array
         scan_dictionary[sample_data].append(merge)
-        energy = scan_dictionary[sample_data][0]
+        energy = scan_dictionary[sample_data][0]        # <------------------------------------------- Energy array
+        reference = scan_dictionary[sample_data][1]     # <------------------------------------------- Reference array
 
-        write_ascii("{}/{}_merged.prj".format(Path(INPUT_PATH), f'{sample_data[:-10]}'), energy, merge,
+        sample_name = sample_data[:-10]
+
+        write_ascii("{}/{}_merged.prj".format(Path(INPUT_PATH), f'{sample_name}'), energy, merge,
+                    label='energy mu',
+                    header=['energy', 'mu'])
+        write_ascii("{}/{}_reference.prj".format(Path(INPUT_PATH), f'{sample_name}'), energy, reference,
                     label='energy mu',
                     header=['energy', 'mu'])
 
         # Plot
+        skip_times = 0
         for mu_index in range(1, len(scan_dictionary[sample_data])):
             mu = scan_dictionary[sample_data][mu_index]
             # Label
             if mu_index == len(scan_dictionary[sample_data])-1:
-                label = f'{sample_data[:-10]}_merged'
+                label = f'{sample_name}_merged'
             else:
-                if f'{sample_data[:-10]}_00{mu_index}' in SKIP_SCANS:
-                    label = f'{sample_data[:-10]}_00{mu_index + 1}'
-                else:
-                    label = f'{sample_data[:-10]}_00{mu_index}'
-            print(label)
-            plt.plot(energy, mu, label=label)
+                if f'{sample_name}_00{mu_index - 1 + skip_times}' in SKIP_SCANS:
+                    skip_times += 1
+                label = f'{sample_name}_00{mu_index - 1 + skip_times}'
+            if mu_index > 1:
+                print(label)
+                plt.plot(energy, mu, label=label)
 
         # Plotting format
         if ENERGY_RANGE == ():
@@ -321,7 +356,7 @@ def read_transmission(files):
         else:
             ax.set_xlim(ENERGY_RANGE)
             plt.xticks(np.arange(ENERGY_RANGE[0], ENERGY_RANGE[1], step=ENERGY_INTERVAL), fontsize=14)
-        plt.title(sample_data[:-10], fontsize=20)
+        plt.title(sample_name, fontsize=20)
         x_label = r'$\mathregular{Energy\ (eV)}$'
         y_label = r'$\mathregular{\chi\mu(E)}$'
         plt.yticks(fontsize=14)
@@ -330,12 +365,108 @@ def read_transmission(files):
         plt.legend(loc='lower right', framealpha=1, frameon=False)
         plt.tight_layout()
         if IF_SAVE:
-            plt.savefig("{}/{}.png".format(Path(INPUT_PATH), f'{sample_data[:-10]}'), dpi=300, transparent=False)
+            plt.savefig("{}/{}.png".format(Path(INPUT_PATH), f'{sample_name}'), dpi=300, transparent=False)
             print('=================================================================================')
-            print(f'Save figures into ---> {sample_data[:-10]}.png')
+            print(f'Save figures into ---> {sample_name}.png')
             print('=================================================================================')
             print('')
         plt.close('all')
+
+
+def calibrate_energy(files):
+    """
+    :param files: files, prj, or no-type files from the current folder
+    :return: None
+    """
+    data_list = []
+
+    # Add e0, atsym, edge, xrayedge information into the created group
+    for file in files:
+        if 'Created' in file.name and 'calibration' not in file.name:
+            print("\n==============================")
+            print(f'Calculate energy shift for {file.name}')
+            print("------------------------------")
+            group = read_athena(file)
+            for name, data in group._athena_groups.items():
+                e0 = find_e0(data.energy, mu=data.mu, group=data)
+                atsym, edge = guess_edge(data.e0)
+                data.atsym = atsym
+                data.edge = edge
+                data.xrayedge = xray_edge(data.atsym, data.edge)[0]
+                print(name, data)
+                print('e0:', e0)
+                print(f'{data.atsym} energy edge', data.xrayedge)
+                if 'foil' in data.label or 'reference' in data.label:    # <------------------------- reference keyword
+                    data.energyshift = data.xrayedge - data.e0
+                    print('Energy shift:', data.energyshift)
+                data_list.append(data)
+                print('')
+
+    first_scan_information = data_list[0]
+
+    if SHOW_DATA_INFORMATION:
+        print("==============================")
+        print(f'Athena parameters in {first_scan_information.label}')
+        print("------------------------------")
+
+        show_data_information(first_scan_information)
+
+        print('')
+
+    reference_energy_shift_dictionary = defaultdict(list)
+
+    # Calculate calibrated energy
+    print("\n==============================")
+    print(f'Add energy shifts to the reference group')
+    print("------------------------------")
+    for index, data in enumerate(data_list):
+        sample_name = data.label
+        if 'foil' in sample_name:
+            reference_energy_shift_dictionary[sample_name] = data.energyshift
+            print(index, sample_name)
+        elif 'reference' in sample_name:
+            reference_energy_shift_dictionary[sample_name] = data.energyshift
+            print(index, sample_name)
+
+    new_merge_project = athena_project.create_athena(f'default.prj')  # Call athena_project.py in current folder
+
+    print("\n==============================")
+    print(f'Energy calibration')
+    print("------------------------------")
+    reference_checklist = []
+    for index, data in enumerate(data_list):
+        for reference_name in reference_energy_shift_dictionary:
+            if data.label[:-11] in reference_name:
+                print(index, data.label)
+                energy_shift = reference_energy_shift_dictionary[reference_name]
+                print('Energy before:', data.energy[0])
+                print('Energy shift:', energy_shift)
+                data.energy = data.energy + energy_shift    # <------------------------------------- Energy calibration
+                print('Energy after:', data.energy[0])
+                reference_checklist.append(reference_name)
+                print('')
+
+        # Replace special characters because they might cause error
+        filename = None
+        if FILE_TYPE == '':
+            filename = f'{data.label}'.replace('-', '_').replace('(', '').replace(')', '')
+        elif FILE_TYPE == '.prj':
+            filename = f'{data.label}'.replace('-', '_').replace('(', '').replace(')', '')
+        new_merge_project.add_group(data, filename)
+
+    new_merge_project.save(f'{Path(INPUT_PATH)}/Created_group_with_calibration.prj')
+    print('=================================================================================')
+    print(f'Save merge project into ---> Created_group_with_calibration.prj')
+    print('=================================================================================')
+
+
+def show_data_information(group):
+    """
+    :param group: group, a group contains x-ray information, such as energy, mu, norm, etc...
+    :return: None
+    """
+    for scan_attribute in dir(group):
+        print(scan_attribute, type(getattr(group, scan_attribute)))
 
 
 if __name__ == '__main__':
