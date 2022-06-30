@@ -16,10 +16,11 @@ from larch.io import read_ascii, write_ascii, merge_groups, read_athena, create_
 import athena_project
 import palettable.colorbrewer.diverging as pld
 from collections import defaultdict
+from pprint import pprint
 
 # Constant
-FILE_TYPE = '.prj'  # ".prj" for merging fluorescence scans; '' for merging transmission scans; ".txt" for plotting scans
-INPUT_PATH = r'D:\Research data\SSID\202206\20220610 BMM\b31-pure NbAl'
+FILE_TYPE = ''  # ".prj" for merging fluorescence scans; '' for merging transmission scans; ".txt" for plotting scans
+INPUT_PATH = r'D:\Research data\SSID\202206\20220610 BMM\powder test'
 
 # Merged Constant
 SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
@@ -287,7 +288,7 @@ def read_transmission(files):
     for index, scan in enumerate(files):
         scan = scan.resolve()  # Make the path absolute, resolving any symlinks
         scanname = scan.name
-        if '.png' not in scanname and '.prj' not in scanname:
+        if '.png' not in scanname and '.prj' not in scanname and '.ini' not in scanname:
             print(index, scanname)
             scan = read_ascii(scan)
 
@@ -417,7 +418,7 @@ def calibrate_energy(files):
 
     # Calculate calibrated energy
     print("\n==============================")
-    print(f'Add energy shifts to the reference group')
+    print(f'Add "energy shifts" attributes to the reference group')
     print("------------------------------")
     for index, data in enumerate(data_list):
         sample_name = data.label
@@ -431,12 +432,17 @@ def calibrate_energy(files):
     new_merge_project = athena_project.create_athena(f'default.prj')  # Call athena_project.py in current folder
 
     print("\n==============================")
+    print(f'Energy shift of the reference')
+    print("------------------------------")
+    pprint(reference_energy_shift_dictionary)
+
+    print("\n==============================")
     print(f'Energy calibration')
     print("------------------------------")
     reference_checklist = []
     for index, data in enumerate(data_list):
         for reference_name in reference_energy_shift_dictionary:
-            if data.label[:-11] in reference_name:
+            if data.label[:-11] in reference_name and data.label[:-8] in reference_name:
                 print(index, data.label)
                 energy_shift = reference_energy_shift_dictionary[reference_name]
                 print('Energy before:', data.energy[0])
