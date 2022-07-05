@@ -33,14 +33,14 @@ SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol,
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-FILE_INDEX = 1  # Which file in file list you want to plot
+FILE_INDEX = 6  # Which file in file list you want to plot
 SAMPLE_LIST = []     # [] for default or [1, 7, 5, 3] for a index list you want to plot
 STANDARD_LIST = []      # [] if no standards in the SAMPLE_LIST or [5, 3] in the SAMPLE_LIST become dash lines
 FIGURE_SIZE = (6.4, 4.8)  # Cheng-hung uses (6, 7.5), but the default is (6.4, 4.8)
-SAMPLE_LABEL = []  # [] for default or add a specific name list
+SAMPLE_LABEL = ['iss_twin_merge 700', 'iss_twin_merge 800', 'iss_twin_merge 900']  # [] for default or add a specific name list
 PALETTE = pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
-OFFSET = 0  # Value you want to add to an offset for each curve.
+OFFSET = 0  # Value you want to add to an y offset for each curve.
 ENERGY_RANGE = ()   # () for default
 ENERGY_INTERVAL = 100   # This parameter works only when you set a ENERGY_RANGE
 IF_SAVE = True
@@ -111,6 +111,7 @@ def plot_xas(files):
     print("==============================")
     print('Files')
     print("------------------------------")
+
     for index, file in enumerate(files):
         f_list.append(file)
         print(index, file)
@@ -288,7 +289,8 @@ def read_transmission(files):
     for index, scan in enumerate(files):
         scan = scan.resolve()  # Make the path absolute, resolving any symlinks
         scanname = scan.name
-        if '.png' not in scanname and '.prj' not in scanname and '.ini' not in scanname:
+
+        if scanname[-3:].isnumeric():   # <------------------------------------------- file type .001, .002, .003, etc.
             print(index, scanname)
             scan = read_ascii(scan)
 
