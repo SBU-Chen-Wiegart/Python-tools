@@ -33,18 +33,18 @@ SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol,
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-FILE_INDEX = 6  # Which file in file list you want to plot
-SAMPLE_LIST = []     # [] for default or [1, 7, 5, 3] for a index list you want to plot
-STANDARD_LIST = []      # [] if no standards in the SAMPLE_LIST or [5, 3] in the SAMPLE_LIST become dash lines
+FILE_INDEX = 0  # Which file in file list you want to plot
+SAMPLE_LIST = [7, 10, 9, 11, 8]     # [] for default or [1, 7, 5, 3] for a index list you want to plot
+STANDARD_LIST = [7]      # [] if no standards in the SAMPLE_LIST or [5, 3] in the SAMPLE_LIST become dash lines
+SAMPLE_LABEL = ['Pure Nb', 'Pristine', '900C00M', '900C7P5', '900C60M']  # [] for default or add a specific name list
 FIGURE_SIZE = (6.4, 4.8)  # Cheng-hung uses (6, 7.5), but the default is (6.4, 4.8)
-SAMPLE_LABEL = ['iss_twin_merge 700', 'iss_twin_merge 800', 'iss_twin_merge 900']  # [] for default or add a specific name list
 PALETTE = pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
 OFFSET = 0  # Value you want to add to an y offset for each curve.
-ENERGY_RANGE = ()   # () for default
-ENERGY_INTERVAL = 100   # This parameter works only when you set a ENERGY_RANGE
+ENERGY_RANGE = (18900, 19150)   # () for default
+ENERGY_INTERVAL = 50   # This parameter works only when you set a ENERGY_RANGE
 IF_SAVE = True
-OUTPUT_FILENAME = 'test_plot'
+OUTPUT_FILENAME = 'Pure thin film'
 
 
 def main():
@@ -170,11 +170,12 @@ def plot_xas(files):
         plt.xticks(np.arange(ENERGY_RANGE[0], ENERGY_RANGE[1], step=ENERGY_INTERVAL), fontsize=14)
     plt.title(OUTPUT_FILENAME, fontsize=20)
     x_label = r'$\mathregular{Energy\ (eV)}$'
-    y_label = r'$\mathregular{Normalized\ \mu(E)}$'
+    y_label = r'$\mathregular{Normalized\ \chi\mu(E)}$'
     plt.yticks(fontsize=14)
     ax1.set_xlabel(x_label, fontsize=18)
     ax1.set_ylabel(y_label, fontsize=18)
-    plt.legend(loc='lower right', framealpha=1, frameon=False)
+    plt.rcParams["axes.linewidth"] = 5
+    plt.legend(loc='lower right', framealpha=1, frameon=False, fontsize=14)
     plt.tight_layout()
     if IF_SAVE:
         plt.savefig("{}/{}.png".format(Path(INPUT_PATH), OUTPUT_FILENAME), dpi=300, transparent=False)
@@ -353,12 +354,8 @@ def read_transmission(files):
                 plt.plot(energy, mu, label=label)
 
         # Plotting format
-        if ENERGY_RANGE == ():
-            ax.set_xlim(energy.min() // 1 + 1, energy.max() // 1 - 1)
-            plt.xticks(fontsize=14)
-        else:
-            ax.set_xlim(ENERGY_RANGE)
-            plt.xticks(np.arange(ENERGY_RANGE[0], ENERGY_RANGE[1], step=ENERGY_INTERVAL), fontsize=14)
+        ax.set_xlim(energy.min() // 1 + 1, energy.max() // 1 - 1)
+        plt.xticks(fontsize=14)
         plt.title(sample_name, fontsize=20)
         x_label = r'$\mathregular{Energy\ (eV)}$'
         y_label = r'$\mathregular{\chi\mu(E)}$'
