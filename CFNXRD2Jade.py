@@ -9,18 +9,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from pathlib import Path
+import palettable.colorbrewer.diverging as pld
 
 # Step 1: Paste your directory
-INPUT_PATH = r'D:\Research data\SSID\202205\20220526 XRD b31 NbAl'   # <-- Enter the folder position you want to explore
+INPUT_PATH = r'D:\Research data\SSID\202203\20220322 SSID b30'   # <-- Enter the folder position you want to explore
 
 # Step 2: Set up your plotting parameters
 # CONSTANT
 FILE_TYPE = '.xy'
-PLOT_LIST = [5, 4, 3, 2]    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
+PLOT_LIST = [3, 2, 0]    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
+SAMPLE_LABEL = ['900C15M', '900C30M', '900C60M']  # [] for default or add a specific name list
 OUTPUT = False   # "True" if you want to save the converted file
-PLOT_OFFSET = 500    # Value you want to add to an offset for each curve.
+PLOT_OFFSET = 1000    # Value you want to add to an offset for each curve.
 PLOT_FIGURE = True  # "True" if you want to show the plots
 IF_LEGEND = True    # "True" if you want to show the legend
+PALETTE = pld.Spectral_4_r  # _r if you want to reverse the color sequence
+CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
+OUTPUT_FILENAME = 'CFN-XRD'
 # Good luck for your data conversion!
 
 
@@ -87,26 +92,51 @@ def intensity_plot(dictionary_of_I_and_q):
         index = dictionary_of_I_and_q['filename_list']     # Select the index from the list_dict['filename_list']
     else:
         index = PLOT_LIST
+
     plot_sequence = 0
     print('Plot:')
     fig, ax = plt.subplots()
     for i in index:
+        color_idx = np.linspace(0, 1, len(PLOT_LIST))
+
         x = dictionary_of_I_and_q['q_list'][i]
         y = dictionary_of_I_and_q['I_list'][i] + plot_sequence*PLOT_OFFSET
-        filename = dictionary_of_I_and_q['filename_list'][i]
-        print(i, filename)
-        plt.plot(x, y, label=f'{filename}')
+
+        # Give specific labels
+        if len(SAMPLE_LABEL) == 0:
+            sample_name = dictionary_of_I_and_q['filename_list'][i]
+        else:
+            sample_name = SAMPLE_LABEL[PLOT_LIST.index(i)]
+
+        print(i, sample_name)
+        plt.plot(x, y, color=CMAP(color_idx[plot_sequence]), label=f'{sample_name}')
         plot_sequence += 1
-    # ax.set_yscale('log')
-    # ax.set_xscale('log')
-    plt.xlabel('$\mathregular{2\\theta \\ (degree)}$', fontsize=12)
-    plt.ylabel('Intensity (arb. units)', fontsize=12)
+
+    # Plotting format
+    # Outer frame edge width
+    spineline = ['left', 'right', 'top', 'bottom']
+    for direction in spineline:
+        ax.spines[direction].set_linewidth('1.5')
+
+    x_label = r'$\mathregular{2\theta \ (degree)}$'
+    y_label = r'Intensity (arb. units)'
+    ax.set_xlabel(x_label, fontsize=18)
+    ax.set_ylabel(y_label, fontsize=18)
+    plt.yticks([])  # Disable ticks
+    plt.xticks(fontsize=14)
+    ax.tick_params(width=2)
     plt.xlim(10, 80)
+
+    y_limit_max = dictionary_of_I_and_q['I_list'][PLOT_LIST[-1]].max() + plot_sequence * PLOT_OFFSET + 1000
+    y_limit_min = dictionary_of_I_and_q['I_list'][PLOT_LIST[0]].min() - 200
+    plt.ylim(y_limit_min, y_limit_max)
+
     if IF_LEGEND:
-        plt.legend(title=r'Sample name')
-    # plt.tight_layout()
-    plt.title('CFN XRD')
+        plt.legend(loc='upper left', framealpha=1, frameon=False, fontsize=14)
+    plt.title(OUTPUT_FILENAME, fontsize=20, pad=10)
+    plt.tight_layout()
     if PLOT_FIGURE:
+        plt.savefig("{}/{}.png".format(Path(INPUT_PATH), OUTPUT_FILENAME), dpi=300, transparent=False)
         plt.show()
 
 
