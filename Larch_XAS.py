@@ -314,13 +314,11 @@ def read_transmission(files):
                 sample_name = scanname[:space_index]
 
                 if f'{sample_name}_energy_mu' not in scan_dictionary:
-                    print('Created')
                     scan_dictionary[f'{sample_name}_energy_mu'] = []
                     scan_dictionary[f'{sample_name}_energy_mu'].append(scan.energy)                   # <--- Energy
                     scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.it / scan.ir))     # <--- Reference
 
                 if f'{sample_name}_00{scanname[space_index + 1:-4]}' not in SKIP_SCANS:
-                    print('Add')
                     scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.i0 / scan.it))   # <--- Transmission
 
             else:
