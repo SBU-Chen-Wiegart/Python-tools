@@ -23,7 +23,7 @@ FILE_TYPE = '.dat'  # ".prj" for merging fluorescence scans; '', '.dat' for merg
 INPUT_PATH = r'D:\Research data\SSID\202208'
 
 # Merged Constant
-SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
+SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001', 'EPC_02_Mn_003']     # [] if scans are good or just add scans you want to exclude
 IF_NOR = False   # Do normalization for fluorescence scans
 ADD_DEV = False     # Add plus and minus standard deviation lines for fluorescence scans
 SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol, edge, label, etc.
@@ -310,15 +310,16 @@ def read_transmission(files):
 
             # Append energy, mu
             if scanname[-3:] == 'dat':
-                space_index = scanname.find(' ', -10)
-                sample_name = scanname[:space_index]
+                space_index = scanname.find(' ', -11)
+                sample_name = scanname[:space_index].replace('-', '_').replace('(', '').replace(')', '').replace(' ', '_')
 
                 if f'{sample_name}_energy_mu' not in scan_dictionary:
                     scan_dictionary[f'{sample_name}_energy_mu'] = []
                     scan_dictionary[f'{sample_name}_energy_mu'].append(scan.energy)                   # <--- Energy
                     scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.it / scan.ir))     # <--- Reference
-
-                if f'{sample_name}_00{scanname[space_index + 1:-4]}' not in SKIP_SCANS:
+                tens_digit = int(scanname[space_index + 1:-4]) // 10 * 10
+                units_digit = int(scanname[space_index + 1:-4]) % 10
+                if f'{sample_name}_00{tens_digit + units_digit}' not in SKIP_SCANS:
                     scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.i0 / scan.it))   # <--- Transmission
 
             else:
@@ -338,14 +339,13 @@ def read_transmission(files):
     print("------------------------------")
 
     for sample_data in scan_dictionary:
-        print(len(scan_dictionary[sample_data]))
         fig, ax = plt.subplots(1, 1, figsize=FIGURE_SIZE)   # Each figure should have its own format
         merge = np.mean(scan_dictionary[sample_data][2:], axis=0)   # <------------------------------- Merged array
         scan_dictionary[sample_data].append(merge)
         energy = scan_dictionary[sample_data][0]        # <------------------------------------------- Energy array
         reference = scan_dictionary[sample_data][1]     # <------------------------------------------- Reference array
 
-        sample_name = sample_data[:-10].replace('-', '_').replace('(', '').replace(')', '').replace(' ', '_')
+        sample_name = sample_data[:-10]
 
         write_ascii("{}/{}_merged.prj".format(Path(INPUT_PATH), f'{sample_name}'), energy, merge,
                     label='energy mu',
