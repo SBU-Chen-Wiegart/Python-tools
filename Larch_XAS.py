@@ -310,7 +310,7 @@ def read_transmission(files):
 
             # Append energy, mu
             if scanname[-3:] == 'dat':
-                space_index = scanname.find(' ')
+                space_index = scanname.find(' ', -10)
                 sample_name = scanname[:space_index]
 
                 if f'{sample_name}_energy_mu' not in scan_dictionary:
@@ -347,7 +347,7 @@ def read_transmission(files):
         energy = scan_dictionary[sample_data][0]        # <------------------------------------------- Energy array
         reference = scan_dictionary[sample_data][1]     # <------------------------------------------- Reference array
 
-        sample_name = sample_data[:-10].replace('-', '_').replace('(', '').replace(')', '')
+        sample_name = sample_data[:-10].replace('-', '_').replace('(', '').replace(')', '').replace(' ', '_')
 
         write_ascii("{}/{}_merged.prj".format(Path(INPUT_PATH), f'{sample_name}'), energy, merge,
                     label='energy mu',
