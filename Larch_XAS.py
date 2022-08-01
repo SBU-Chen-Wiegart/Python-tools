@@ -19,8 +19,8 @@ from collections import defaultdict
 from pprint import pprint
 
 # Constant
-FILE_TYPE = ''  # ".prj" for merging fluorescence scans; '' for merging transmission scans; ".txt" for plotting scans
-INPUT_PATH = r'D:\Research data\SSID\202206\20220610 BMM\powder test'
+FILE_TYPE = '.dat'  # ".prj" for merging fluorescence scans; '', '.dat' for merging transmission scans; ".txt" for plotting scans
+INPUT_PATH = r'D:\Research data\SSID\202208'
 
 # Merged Constant
 SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
@@ -33,18 +33,18 @@ SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol,
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-FILE_INDEX = 0  # Which file in file list you want to plot
-SAMPLE_LIST = [7, 10, 9, 11, 8]     # [] for default or [1, 7, 5, 3] for a index list you want to plot
+FILE_INDEX = 0  # Which file in the file list you want to plot
+SAMPLE_LIST = [10, 9, 11, 8, 7]     # [] for default or [1, 7, 5, 3] for a index list you want to plot
 STANDARD_LIST = [7]      # [] if no standards in the SAMPLE_LIST or [5, 3] in the SAMPLE_LIST become dash lines
-SAMPLE_LABEL = ['Pure Nb', 'Pristine', '900C00M', '900C7P5', '900C60M']  # [] for default or add a specific name list
+SAMPLE_LABEL = ['Pristine', '900C00M', '900C7p5M', '900C60M', 'Pure Nb']  # [] for default or add a specific name list
 FIGURE_SIZE = (6.4, 4.8)  # Cheng-hung uses (6, 7.5), but the default is (6.4, 4.8)
 PALETTE = pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
-OFFSET = 0  # Value you want to add to an y offset for each curve.
-ENERGY_RANGE = (18900, 19150)   # () for default
+OFFSET = 0.15  # Value you want to add to an y offset for each curve.
+ENERGY_RANGE = (18900, 19150)   # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
 ENERGY_INTERVAL = 50   # This parameter works only when you set a ENERGY_RANGE
 IF_SAVE = True
-OUTPUT_FILENAME = 'Pure thin film'
+OUTPUT_FILENAME = 'b31-Nb-time-dependent-rect'
 
 
 def main():
@@ -77,7 +77,7 @@ def main():
         read_transmission(files)
 
         # Create a group prj containing all sample data
-        files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')  # Import input path to read prj files which have been processed
+        files = Path(INPUT_PATH).glob(f'*.prj')  # Import input path to read prj files which have been processed
         for index, file_prj in enumerate(files):
             if '.prj' in file_prj.name and 'Created' not in file_prj.name:
                 group = read_ascii(f'{file_prj}')       # <------------------------- take care, not read_athena
@@ -90,6 +90,7 @@ def main():
 
                 # Replace special characters because they might cause error
                 sample_name = f'{group.filename}'.replace('-', '_').replace('(', '').replace(')', '')
+                print(sample_name)
                 new_merge_project.add_group(group, sample_name)
 
         new_merge_project.save(f'{Path(INPUT_PATH)}/Created_transmission_group.prj')
@@ -98,7 +99,7 @@ def main():
         print('=================================================================================')
 
         # Call Path again to grab the created athena project
-        files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
+        files = Path(INPUT_PATH).glob(f'*.prj')
         calibrate_energy(files)
 
 
@@ -168,10 +169,10 @@ def plot_xas(files):
     else:
         ax1.set_xlim(ENERGY_RANGE)
         plt.xticks(np.arange(ENERGY_RANGE[0], ENERGY_RANGE[1], step=ENERGY_INTERVAL), fontsize=14)
-    plt.title(OUTPUT_FILENAME, fontsize=20)
+    plt.title(OUTPUT_FILENAME, fontsize=20, pad=10)
     x_label = r'$\mathregular{Energy\ (eV)}$'
     y_label = r'$\mathregular{Normalized\ \chi\mu(E)}$'
-    plt.yticks(fontsize=14)
+    plt.yticks([])  # Disable ticks
     ax1.set_xlabel(x_label, fontsize=18)
     ax1.set_ylabel(y_label, fontsize=18)
     plt.rcParams["axes.linewidth"] = 5
@@ -259,7 +260,7 @@ def merge_scan(file_prj, new_merge_project):
         print('Xray edge:', xray_edge(merges.atsym, merges.edge)[0])
 
     # Replace '-' with '_' because '-' will cause error
-    scan_name = f'{first_scan_information.label[:-4]}_merged'.replace('-', '_')
+    scan_name = f'{first_scan_information.label[:-4]}_merged'.replace('-', '_').replace(' ', '_')
     new_merge_project.add_group(merges, scan_name)  # Add the merge into the new prj
 
     # Plotting format
@@ -291,7 +292,7 @@ def read_transmission(files):
         scan = scan.resolve()  # Make the path absolute, resolving any symlinks
         scanname = scan.name
 
-        if scanname[-3:].isnumeric():   # <------------------------------------------- file type .001, .002, .003, etc.
+        if scanname[-3:].isnumeric() or scanname[-3:] == 'dat':   # <------------------------------------------- file type .001, .002, .003, etc.
             print(index, scanname)
             scan = read_ascii(scan)
 
@@ -299,6 +300,7 @@ def read_transmission(files):
                 print("\n==============================")
                 print(f'Scan attributes in {scanname}')
                 print("------------------------------")
+                print(scanname.find(' '))
                 scan_header = str(scan.header)
                 scan_plot_hint_index = scan_header.find('# Scan.plot_hint')
                 print(scan_header[scan_plot_hint_index: scan_header.find(',', scan_plot_hint_index)])
@@ -307,15 +309,30 @@ def read_transmission(files):
                 print('')
 
             # Append energy, mu
-            sample_name = scanname[:-4]
-            if f'{sample_name}_energy_mu' not in scan_dictionary:
-                scan_dictionary[f'{sample_name}_energy_mu'] = []
-                scan_dictionary[f'{sample_name}_energy_mu'].append(scan.energy)                   # <--- Energy
-                scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.it / scan.ir))     # <--- Reference
-            tens_digit = int(scanname[-2:]) // 10 * 10
-            units_digit = int(scanname[-2:]) % 10
-            if f'{sample_name}_00{tens_digit + units_digit}' not in SKIP_SCANS:
-                scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.i0 / scan.it))     # <--- Transmission
+            if scanname[-3:] == 'dat':
+                space_index = scanname.find(' ')
+                sample_name = scanname[:space_index]
+
+                if f'{sample_name}_energy_mu' not in scan_dictionary:
+                    print('Created')
+                    scan_dictionary[f'{sample_name}_energy_mu'] = []
+                    scan_dictionary[f'{sample_name}_energy_mu'].append(scan.energy)                   # <--- Energy
+                    scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.it / scan.ir))     # <--- Reference
+
+                if f'{sample_name}_00{scanname[space_index + 1:-4]}' not in SKIP_SCANS:
+                    print('Add')
+                    scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.i0 / scan.it))   # <--- Transmission
+
+            else:
+                sample_name = scanname[:-4]
+                if f'{sample_name}_energy_mu' not in scan_dictionary:
+                    scan_dictionary[f'{sample_name}_energy_mu'] = []
+                    scan_dictionary[f'{sample_name}_energy_mu'].append(scan.energy)                   # <--- Energy
+                    scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.it / scan.ir))     # <--- Reference
+                tens_digit = int(scanname[-2:]) // 10 * 10
+                units_digit = int(scanname[-2:]) % 10
+                if f'{sample_name}_00{tens_digit + units_digit}' not in SKIP_SCANS:
+                    scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.i0 / scan.it))    # <--- Transmission
 
     # Append merged data, so each item will contain energy, reference, scan1, scan2, scan3, etc... and a merged scan.
     print("\n==============================")
@@ -323,13 +340,14 @@ def read_transmission(files):
     print("------------------------------")
 
     for sample_data in scan_dictionary:
+        print(len(scan_dictionary[sample_data]))
         fig, ax = plt.subplots(1, 1, figsize=FIGURE_SIZE)   # Each figure should have its own format
         merge = np.mean(scan_dictionary[sample_data][2:], axis=0)   # <------------------------------- Merged array
         scan_dictionary[sample_data].append(merge)
         energy = scan_dictionary[sample_data][0]        # <------------------------------------------- Energy array
         reference = scan_dictionary[sample_data][1]     # <------------------------------------------- Reference array
 
-        sample_name = sample_data[:-10]
+        sample_name = sample_data[:-10].replace('-', '_').replace('(', '').replace(')', '')
 
         write_ascii("{}/{}_merged.prj".format(Path(INPUT_PATH), f'{sample_name}'), energy, merge,
                     label='energy mu',
@@ -441,7 +459,7 @@ def calibrate_energy(files):
     reference_checklist = []
     for index, data in enumerate(data_list):
         for reference_name in reference_energy_shift_dictionary:
-            if data.label[:-11] in reference_name and data.label[:-8] in reference_name:
+            if data.label[:-9] in reference_name and data.label[:-6] in reference_name:
                 print(index, data.label)
                 energy_shift = reference_energy_shift_dictionary[reference_name]
                 print('Energy before:', data.energy[0])
@@ -452,11 +470,7 @@ def calibrate_energy(files):
                 print('')
 
         # Replace special characters because they might cause error
-        filename = None
-        if FILE_TYPE == '':
-            filename = f'{data.label}'.replace('-', '_').replace('(', '').replace(')', '')
-        elif FILE_TYPE == '.prj':
-            filename = f'{data.label}'.replace('-', '_').replace('(', '').replace(')', '')
+        filename = f'{data.label}'.replace('-', '_').replace('(', '').replace(')', '')
         new_merge_project.add_group(data, filename)
 
     new_merge_project.save(f'{Path(INPUT_PATH)}/Created_group_with_calibration.prj')
