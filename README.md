@@ -47,36 +47,57 @@ pip install xraylarch
 ---
 #### Data processing
 
-FILE_TYPE =
-* '.prj': merge fluorescence scans (_e.g._ BNL NSLS-II BMM)
-* '': merge transmission scans (_e.g._ BNL NSLS-II BMM)
-* '.dat': merge transmission scans (_e.g._ BNL NSLS-II ISS)
-* '.txt': Plot scans file exported from Athena
+If merging fluorescence scans (_e.g._ BNL NSLS-II BMM)
+```
+FILE_TYPE = '.prj'
+```
+If merging transmission scans (_e.g._ BNL NSLS-II BMM)
+```
+FILE_TYPE = ''
+```
+If merging transmission scans (_e.g._ BNL NSLS-II ISS)
+```
+FILE_TYPE = '.dat'
+```
+If plotting scans file exported from Athena
+```
+FILE_TYPE = '.txt'
+```
 
-INPUT_PATH = 
-* Copy and paste data location
+Copy and paste the directory of the data folder
+```
+INPUT_PATH = r'D:\Research data\SSID\202209\20220330 ISS NbOx'
+```
 
 #### Data display (optional)
 
-SKIP_SCANS = 
-* ['MnO2_45_16C_Charge_Mn_001']: add scan name you want to exclude
+Add scan name you want to exclude
+```
+SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']
+```
 
-IF_NOR = 
-* True / False: do normalization for fluorescence scans
+Do normalization for fluorescence scans
+```
+IF_NOR = False
+```
 
-ADD_DEV =
-* True / False: add plus and minus standard deviation lines for fluorescence scans
+Add plus and minus standard deviation lines for fluorescence scans
+```
+ADD_DEV = False
+```
 
-SHOW_DATA_INFORMATION = 
-* True / False: display Athena parameters, such as atomic symbol, edge, label, etc.
+Display Athena parameters, such as atomic symbol, edge, label, etc.
+```
+SHOW_DATA_INFORMATION = False
+```
 
 #### Plot spectrum (optional)
 
 * Download **larch_plot_config.ini**
-
-CONFIG_FILE = 
 * Copy and paste the absolute directory of the config file for plotting .txt files
-
+```
+CONFIG_FILE = r"D:\Research data\SSID\202205\20220509 20210221 BMM\b28_Sc_pure_config.ini"
+```
 ## CFNXRD2Jade.py
 ### Usage
 
@@ -93,22 +114,29 @@ CONFIG_FILE =
 ### Usage
 
 ---
-INPUT_PATH = 
-* Copy and paste data location
+Copy and paste data location
+```
+INPUT_PATH = r'D:\Research data\SSID\202204\20220406 XPD ex-situ check\LK_b30-14_Nb40Al60Sc_SiO2Si_pristine_heating'
+```
+Absolute directory or ' ' will return index as the color bar
+```
+TIMESTAMP_FILE = 'sample_LK_heating_20220408_172022.xlsx'
+```
+[  ] for default or [1, 7, 5, 3] index list for the index sequence you desire
+```
+PLOT_LIST = list(np.arange(0, 191, 5)) 
+```
+Number you want to add to an offset for each curve
+```
+PLOT_OFFSET = 0.5
+```
 
-TIMESTAMP_FILE = 
-* Absolute directory or ' ' will return index as the color bar
-
-PLOT_LIST = 
-* [  ] for default or [1, 7, 5, 3] index list for the index sequence you desire
-
-PLOT_OFFSET = 
-* Number you want to add to an offset for each curve.
-
-PLOT_FIGURE = 
-* "True" if you want to show the plots
-
-SAVE_IMG = 
-* "True" if you want to save the converted file
-
+"True" if you want to show the plots
+```
+PLOT_FIGURE = True
+```
+"True" if you want to save the converted file
+```
+SAVE_IMG = False
+```
 ## License
