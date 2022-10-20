@@ -4,6 +4,7 @@ Name: Cheng-Chu Chung
 ----------------------------------------
 TODO: Convert CFN XRD data to the data readable in Jade (10 --> 10.00 for x_axis value)
 """
+from pprint import pprint
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,14 +13,14 @@ from pathlib import Path
 import palettable.colorbrewer.diverging as pld
 
 # Step 1: Paste your directory
-INPUT_PATH = r'D:\Research data\SSID\202203\20220322 SSID b30'   # <-- Enter the folder position you want to explore
+INPUT_PATH = r"D:\Research data\SSID\202210\20221013 XRD b32 FS"   # <-- Enter the folder position you want to explore
 
 # Step 2: Set up your plotting parameters
 # CONSTANT
 FILE_TYPE = '.xy'
-PLOT_LIST = [3, 2, 0]    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
-SAMPLE_LABEL = ['900C15M', '900C30M', '900C60M']  # [] for default or add a specific name list
-OUTPUT = False   # "True" if you want to save the converted file
+PLOT_LIST = []    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
+SAMPLE_LABEL = []  # [] for default or add a specific name list
+OUTPUT = True   # "True" if you want to save the converted file
 PLOT_OFFSET = 1000    # Value you want to add to an offset for each curve.
 PLOT_FIGURE = True  # "True" if you want to show the plots
 IF_LEGEND = True    # "True" if you want to show the legend
@@ -89,15 +90,14 @@ def intensity_plot(dictionary_of_I_and_q):
     """
     # Import the data
     if len(PLOT_LIST) == 0:
-        index = dictionary_of_I_and_q['filename_list']     # Select the index from the list_dict['filename_list']
+        index = list(np.arange(len(dictionary_of_I_and_q['filename_list'])))    # Select the index from the list_dict['filename_list']
     else:
         index = PLOT_LIST
-
     plot_sequence = 0
     print('Plot:')
     fig, ax = plt.subplots()
     for i in index:
-        color_idx = np.linspace(0, 1, len(PLOT_LIST))
+        color_idx = np.linspace(0, 1, len(index))
 
         x = dictionary_of_I_and_q['q_list'][i]
         y = dictionary_of_I_and_q['I_list'][i] + plot_sequence*PLOT_OFFSET
@@ -125,10 +125,10 @@ def intensity_plot(dictionary_of_I_and_q):
     plt.yticks([])  # Disable ticks
     plt.xticks(fontsize=14)
     ax.tick_params(width=2)
-    plt.xlim(10, 80)
 
-    y_limit_max = dictionary_of_I_and_q['I_list'][PLOT_LIST[-1]].max() + plot_sequence * PLOT_OFFSET + 1000
-    y_limit_min = dictionary_of_I_and_q['I_list'][PLOT_LIST[0]].min() - 200
+    plt.xlim(10, 80)
+    y_limit_max = dictionary_of_I_and_q['I_list'][index[-1]].max() + plot_sequence * PLOT_OFFSET + 1000
+    y_limit_min = dictionary_of_I_and_q['I_list'][index[0]].min() - 200
     plt.ylim(y_limit_min, y_limit_max)
 
     if IF_LEGEND:
