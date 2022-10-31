@@ -18,15 +18,16 @@ INPUT_PATH = r"D:\Research data\SSID\202210\20221013 XRD b32 FS"   # <-- Enter t
 # Step 2: Set up your plotting parameters
 # CONSTANT
 FILE_TYPE = '.xy'
-PLOT_LIST = []    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
-SAMPLE_LABEL = []  # [] for default or add a specific name list
-OUTPUT = True   # "True" if you want to save the converted file
+PLOT_LIST = [10, 9, 6, 7, 8]    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
+SAMPLE_LABEL = ['Fused silica', 'Pristine', '900C00M', '900C7p5M', '900C60M']  # [] for default or add a specific name list
+OUTPUT = False   # "True" if you want to save the converted file
 PLOT_OFFSET = 1000    # Value you want to add to an offset for each curve.
 PLOT_FIGURE = True  # "True" if you want to show the plots
 IF_LEGEND = True    # "True" if you want to show the legend
+LEGEND_LOCATION = 'upper right'
 PALETTE = pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
-OUTPUT_FILENAME = 'CFN-XRD'
+OUTPUT_FILENAME = 'b32_NbAl_FS'
 # Good luck for your data conversion!
 
 
@@ -108,7 +109,7 @@ def intensity_plot(dictionary_of_I_and_q):
         else:
             sample_name = SAMPLE_LABEL[PLOT_LIST.index(i)]
 
-        print(i, sample_name)
+        print(i, dictionary_of_I_and_q['filename_list'][i])
         plt.plot(x, y, color=CMAP(color_idx[plot_sequence]), label=f'{sample_name}')
         plot_sequence += 1
 
@@ -132,7 +133,7 @@ def intensity_plot(dictionary_of_I_and_q):
     plt.ylim(y_limit_min, y_limit_max)
 
     if IF_LEGEND:
-        plt.legend(loc='upper left', framealpha=1, frameon=False, fontsize=14)
+        plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=14)
     plt.title(OUTPUT_FILENAME, fontsize=20, pad=10)
     plt.tight_layout()
     if PLOT_FIGURE:

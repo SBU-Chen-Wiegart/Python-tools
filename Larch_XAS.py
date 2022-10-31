@@ -26,8 +26,8 @@ FILE_TYPE instructions:
 '' or '.dat' for merging transmission scans
 '.txt' for plotting scans
 """
-FILE_TYPE = '.dat'
-INPUT_PATH = r'D:\Research data\SSID\202209\20220330 ISS NbOx'
+FILE_TYPE = '.txt'
+INPUT_PATH = r'D:\Research data\Conversion coating\202206\20220611 BMM pouch cell\Cu_A_Cu20_PAMAM50'
 
 # Merged Constant
 SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
@@ -40,20 +40,21 @@ SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol,
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\SSID\202205\20220509 20210221 BMM\b28_Sc_pure_config.ini"
+CONFIG_FILE = r"D:\Research data\Conversion coating\202206\20220611 BMM pouch cell\Cu_A_Cu20_PAMAM50\Cu_A_Cu20_PAMAM50_nor_config.ini"
+
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE, encoding="utf8")
 
-FILE_INDEX = config.getint('samples', 'file_index')  # Which file in the file list you want to plot
-SAMPLE_LIST = eval(config['samples']['sample_list'])  # [] for default or [1, 7, 5, 3] for a index list you want to plot
-STANDARD_LIST = eval(config['samples']['standard_list'])  # [] if none or [5, 3] in the SAMPLE_LIST become dash lines
-SAMPLE_LABEL = eval(config['legends']['sample_label'])  # [] for default or add a specific name list
-FIGURE_SIZE = eval(config['format']['figure_size'])  # Cheng-Hung uses (6, 7.5), but the default is (6.4, 4.8)
-PALETTE = eval(config['format']['palette'])     # pld.Spectral_4_r  # _r if you want to reverse the color sequence
-CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
+FILE_INDEX = config.getint('samples', 'file_index')           # Which file in the file list you want to plot
+SAMPLE_LIST = eval(config['samples']['sample_list'])          # [] for default or [1, 7, 5, 3] for a index list you want to plot
+STANDARD_LIST = eval(config['samples']['standard_list'])      # [] if none or [5, 3] in the SAMPLE_LIST become dash lines
+SAMPLE_LABEL = eval(config['legends']['sample_label'])        # [] for default or add a specific name list
+FIGURE_SIZE = eval(config['format']['figure_size'])           # Cheng-Hung uses (6, 7.5), but the default is (6.4, 4.8)
+PALETTE = eval(config['format']['palette'])                   # pld.Spectral_4_r  # _r if you want to reverse the color sequence
+CMAP = PALETTE.mpl_colormap                                   # .mpl_colormap attribute is a continuous, interpolated map
 COLOR_INCREMENT = eval(config['format']['color_increment'])
-OFFSET = eval(config['format']['offset'])   # Value you want to add to an y offset for each curve.
-ENERGY_RANGE = eval(config['format']['energy_range'])   # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
+OFFSET = eval(config['format']['offset'])                     # Value you want to add to an y offset for each curve.
+ENERGY_RANGE = eval(config['format']['energy_range'])         # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
 ENERGY_INTERVAL = eval(config['format']['energy_interval'])   # This parameter works only when you set a ENERGY_RANGE
 IF_SAVE = eval(config['format']['if_save'])
 OUTPUT_FILENAME = config['format']['output_filename']
