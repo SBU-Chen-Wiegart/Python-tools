@@ -13,21 +13,22 @@ from pathlib import Path
 import palettable.colorbrewer.diverging as pld
 
 # Step 1: Paste your directory
-INPUT_PATH = r"D:\Research data\SSID\202210\20221013 XRD b32 FS"   # <-- Enter the folder position you want to explore
+INPUT_PATH = r"D:\Research data\SSID\202211\20221121 XRD b35 SP"   # <-- Enter the folder position you want to explore
 
 # Step 2: Set up your plotting parameters
 # CONSTANT
 FILE_TYPE = '.xy'
-PLOT_LIST = [10, 9, 6, 7, 8]    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
-SAMPLE_LABEL = ['Fused silica', 'Pristine', '900C00M', '900C7p5M', '900C60M']  # [] for default or add a specific name list
+PLOT_LIST = [6, 5, 3, 4]    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
+SAMPLE_LABEL = ['Sapphire', 'Pristine', '900C00M', '900C60M']  # [] for default or add a specific name list
 OUTPUT = False   # "True" if you want to save the converted file
-PLOT_OFFSET = 1000    # Value you want to add to an offset for each curve.
+Y_RANGE = (-50, 100)   # Increment of ylim
+PLOT_OFFSET = 100    # Value you want to add to an offset for each curve.
 PLOT_FIGURE = True  # "True" if you want to show the plots
 IF_LEGEND = True    # "True" if you want to show the legend
 LEGEND_LOCATION = 'upper right'
 PALETTE = pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
-OUTPUT_FILENAME = 'b32_NbAl_FS'
+OUTPUT_FILENAME = 'b33_NbAlSc_SP'
 # Good luck for your data conversion!
 
 
@@ -105,7 +106,7 @@ def intensity_plot(dictionary_of_I_and_q):
 
         # Give specific labels
         if len(SAMPLE_LABEL) == 0:
-            sample_name = dictionary_of_I_and_q['filename_list'][i]
+            sample_name = dictionary_of_I_and_q['filename_list'][i][:20]
         else:
             sample_name = SAMPLE_LABEL[PLOT_LIST.index(i)]
 
@@ -117,7 +118,7 @@ def intensity_plot(dictionary_of_I_and_q):
     # Outer frame edge width
     spineline = ['left', 'right', 'top', 'bottom']
     for direction in spineline:
-        ax.spines[direction].set_linewidth('1.5')
+        ax.spines[direction].set_linewidth('2')
 
     x_label = r'$\mathregular{2\theta \ (degree)}$'
     y_label = r'Intensity (arb. units)'
@@ -128,8 +129,8 @@ def intensity_plot(dictionary_of_I_and_q):
     ax.tick_params(width=2)
 
     plt.xlim(10, 80)
-    y_limit_max = dictionary_of_I_and_q['I_list'][index[-1]].max() + plot_sequence * PLOT_OFFSET + 1000
-    y_limit_min = dictionary_of_I_and_q['I_list'][index[0]].min() - 200
+    y_limit_max = dictionary_of_I_and_q['I_list'][index[-1]].max() + plot_sequence * PLOT_OFFSET + Y_RANGE[1]
+    y_limit_min = dictionary_of_I_and_q['I_list'][index[0]].min() + Y_RANGE[0]
     plt.ylim(y_limit_min, y_limit_max)
 
     if IF_LEGEND:
@@ -137,8 +138,29 @@ def intensity_plot(dictionary_of_I_and_q):
     plt.title(OUTPUT_FILENAME, fontsize=20, pad=10)
     plt.tight_layout()
     if PLOT_FIGURE:
-        plt.savefig("{}/{}.png".format(Path(INPUT_PATH), OUTPUT_FILENAME), dpi=300, transparent=False)
+        output_filename = check_filename_repetition(OUTPUT_FILENAME)
+        plt.savefig("{}/{}.png".format(Path(INPUT_PATH), output_filename), dpi=300, transparent=False)
         plt.show()
+
+
+def check_filename_repetition(output_filename):
+    """
+    :param output_filename: string, output filename
+    :return: string, new output filename
+    """
+    print("\n==============================")
+    print('Check filename repetition')
+    print("------------------------------")
+    files = Path(INPUT_PATH).glob(f'*.png')
+    png_list = []
+    for index, file in enumerate(files):
+        png_list.append(file.name[:-4])
+
+    print(output_filename)
+    while output_filename in png_list:
+        output_filename = output_filename + '_1'
+        print(output_filename)
+    return output_filename
 
 
 if __name__ == '__main__':
