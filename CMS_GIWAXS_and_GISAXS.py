@@ -22,8 +22,8 @@ from scipy import stats
 
 INPUT_PATH = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02"
 CONFIG_FILE = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\CMS_plot_config_gisaxs_b32_0.2_G.ini"
-INPUT_PATH = r"D:\Research data\SSID\202211\20221114 CMS battery\analysis\circular_average"
-CONFIG_FILE = r"D:\Research data\SSID\202211\20221114 CMS laser heating and battery\waxs\analysis\CMS_plot_battery_config.ini"
+INPUT_PATH = r"D:\Research data\SSID\202212\20221207 CMS SSMD comparison\b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000"
+CONFIG_FILE = r"D:\Research data\SSID\202212\20221207 CMS SSMD comparison\b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000\CMS_plot_config_b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000.ini"
 CONFIG = configparser.ConfigParser()
 
 if Path(CONFIG_FILE).is_file():
@@ -78,7 +78,7 @@ def main():
 
 def giwaxs(files):
     q_and_I_list = sorted_data(files, mode=ANGLE_RANGE)
-    background_subtraction(q_and_I_list, degree=5)   # Add a new list with background subtraction
+    # background_subtraction(q_and_I_list, degree=5)   # Add a new list with background subtraction
     giwaxs_plot(q_and_I_list)
     # giwaxs_plot(q_and_I_list, mode='bg_sub')
 
@@ -91,19 +91,19 @@ def gisaxs(files):
 def sorted_data(files, mode=ANGLE_RANGE):
     data_dict = {'q_list': {}, 'I_list': {},'filename_list': {}, 'background_subtraction_list': {}}   # Create a dictionary to store all information
     for index, file in enumerate(files):
-        waxs_data = file.resolve()  # Make the path absolute, resolving any symlinks
-        data_dict['filename_list'][index] = waxs_data.name
-        print(index, waxs_data.name)
+        scattering_data = file.resolve()  # Make the path absolute, resolving any symlinks
+        data_dict['filename_list'][index] = scattering_data.name
+        print(index, scattering_data.name)
         if mode == 'wide':
-            dataframe = pd.read_table(waxs_data, sep="\s+",
+            dataframe = pd.read_table(scattering_data, sep="\s+",
                                       usecols=['#', 'q', 'qerr', 'I(q)'])\
                 .to_numpy()  # '#' is q column and 'qerr' is I(q) column
             data_dict['q_list'][index] = dataframe[:, 0]
             data_dict['I_list'][index] = dataframe[:, 2]
             if OUTPUT_FOR_JADE:
-                    out_file(dataframe[:, 0], dataframe[:, 2], f'Converted_{waxs_data.name}')
+                    out_file(dataframe[:, 0], dataframe[:, 2], f'Converted_{scattering_data.name}')
         elif mode == 'small':
-            dataframe = pd.read_table(waxs_data, sep="\s+",
+            dataframe = pd.read_table(scattering_data, sep="\s+",
                                       usecols=['#', 'qr', 'I']) \
                 .to_numpy()  # '#' is q column and 'qerr' is I(q) column
 
@@ -130,6 +130,7 @@ def background_subtraction(q_and_I_list, degree=3):
         x = q_and_I_list['q_list'][index]
         y = q_and_I_list['I_list'][index]
         filename = q_and_I_list['filename_list'][index]
+        print(index, filename)
         # pos = filename[filename.find('pos'):filename.find('pos') + 4]
         base_line = peakutils.baseline(y, degree)  # generate baseline
         y_corrected = y - base_line  # subtract baseline from y-values
@@ -166,7 +167,7 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
         if len(SAMPLE_LABEL) == 0:
             plot_label = f"{batch_number}/{composition}/{condition}/{incident_angle}"
         else:
-            plot_label = SAMPLE_LABEL[SAMPLE_LIST.index(index)]
+            plot_label = SAMPLE_LABEL[SAMPLE_LIST.index(index)] if len(SAMPLE_LABEL) == len(SAMPLE_LIST) else filename
 
         # Title
         if TITLE != 'Auto':
@@ -202,7 +203,7 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
     plt.xlim(q_and_I_list['q_list'][SAMPLE_LIST[0]].min(), q_and_I_list['q_list'][SAMPLE_LIST[0]].max())
     plt.ylim(y_min_lim-50, y_max_lim+200)
     plt.legend(loc='upper left', framealpha=1, frameon=False, fontsize=12)
-    plt.title(title, fontsize=18, pad=10)
+    plt.title(title, fontsize=18, pad=15)
     plt.tight_layout()
     if IF_SAVE:
         output_filename = check_filename_repetition(title)
@@ -417,7 +418,8 @@ def out_file(tth, intensity, filename):
     :return: None
     """
     print('=================================================================================')
-    short_filename = filename[:filename.find('_pos1')] + '-' + filename[filename.find('th'):filename.find('th')+6]
+    short_filename = filename[:filename.find('_pos1')] + '-xposi' + filename[filename.find("_x") + 2:filename.find(
+        "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6]
     print(f'Converting CMS GIWAXS data to --> {short_filename}')
     filename = os.path.join(INPUT_PATH+'/', short_filename + '.xy')
     with open(filename, 'w') as out:
