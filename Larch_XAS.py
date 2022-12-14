@@ -26,8 +26,8 @@ FILE_TYPE instructions:
 '' or '.dat' for merging transmission scans
 '.txt' for plotting scans
 """
-FILE_TYPE = '.txt'
-INPUT_PATH = r'D:\Research data\Conversion coating\202206\20220611 BMM pouch cell\Cu_A_Cu20_PAMAM50'
+FILE_TYPE = '.prj'
+INPUT_PATH = r'D:\Research data\Conversion coating\202211'
 
 # Merged Constant
 SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
@@ -40,24 +40,34 @@ SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol,
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\Conversion coating\202206\20220611 BMM pouch cell\Cu_A_Cu20_PAMAM50\Cu_A_Cu20_PAMAM50_nor_config.ini"
+CONFIG_FILE = r"D:\Research data\SSID\202206\20220610 BMM\b31-pure NbAl\b31-Nb-time-dependent-squ_confi.ini"
 
 config = configparser.ConfigParser()
-config.read(CONFIG_FILE, encoding="utf8")
+if Path(CONFIG_FILE).is_file():
+    config.read(CONFIG_FILE, encoding="utf8")
+    is_ini = True
+    print("=================")
+    print("Use .ini input")
+    print("-----------------")
+else:
+    is_ini = False
+    print("=================")
+    print("Manually input so please remove all eval commands if error occurs or file is not found")
+    print("-----------------")
 
-FILE_INDEX = config.getint('samples', 'file_index')           # Which file in the file list you want to plot
-SAMPLE_LIST = eval(config['samples']['sample_list'])          # [] for default or [1, 7, 5, 3] for a index list you want to plot
-STANDARD_LIST = eval(config['samples']['standard_list'])      # [] if none or [5, 3] in the SAMPLE_LIST become dash lines
-SAMPLE_LABEL = eval(config['legends']['sample_label'])        # [] for default or add a specific name list
-FIGURE_SIZE = eval(config['format']['figure_size'])           # Cheng-Hung uses (6, 7.5), but the default is (6.4, 4.8)
-PALETTE = eval(config['format']['palette'])                   # pld.Spectral_4_r  # _r if you want to reverse the color sequence
-CMAP = PALETTE.mpl_colormap                                   # .mpl_colormap attribute is a continuous, interpolated map
-COLOR_INCREMENT = eval(config['format']['color_increment'])
-OFFSET = eval(config['format']['offset'])                     # Value you want to add to an y offset for each curve.
-ENERGY_RANGE = eval(config['format']['energy_range'])         # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
-ENERGY_INTERVAL = eval(config['format']['energy_interval'])   # This parameter works only when you set a ENERGY_RANGE
-IF_SAVE = eval(config['format']['if_save'])
-OUTPUT_FILENAME = config['format']['output_filename']
+FILE_INDEX = config.getint('samples', 'file_index') if is_ini else 0                                      # Which file in the file list you want to plot
+SAMPLE_LIST = eval(config['samples']['sample_list']) if is_ini else []                                    # [] for default or [1, 7, 5, 3] for a index list you want to plot
+STANDARD_LIST = eval(config['samples']['standard_list']) if is_ini else []                                # [] if none or [5, 3] in the SAMPLE_LIST become dash lines
+SAMPLE_LABEL = eval(config['legends']['sample_label']) if is_ini else []                                  # [] for default or add a specific name list
+FIGURE_SIZE = eval(config['format']['figure_size']) if is_ini else (6.4, 4.8)                             # Cheng-Hung uses (6, 7.5), but the default is (6.4, 4.8)
+PALETTE = eval(config['format']['palette']) if is_ini else pltt.colorbrewer.diverging.Spectral_4_r        # pld.Spectral_4_r  # _r if you want to reverse the color sequence
+CMAP = PALETTE.mpl_colormap                                                                               # .mpl_colormap attribute is a continuous, interpolated map
+COLOR_INCREMENT = eval(config['format']['color_increment']) if is_ini else 0
+OFFSET = eval(config['format']['offset']) if is_ini else 0                                                # Value you want to add to an y offset for each curve.
+ENERGY_RANGE = eval(config['format']['energy_range']) if is_ini else ()                                   # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
+ENERGY_INTERVAL = eval(config['format']['energy_interval']) if is_ini else 0                              # This parameter works only when you set a ENERGY_RANGE
+IF_SAVE = eval(config['format']['if_save']) if is_ini else True
+OUTPUT_FILENAME = config['format']['output_filename'] if is_ini else "Default"
 NUM_COLUMN = 1
 
 
