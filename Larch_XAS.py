@@ -26,7 +26,7 @@ FILE_TYPE instructions:
 '' or '.dat' for merging transmission scans
 '.txt' for plotting scans
 """
-FILE_TYPE = '.prj'
+FILE_TYPE = '.txt'
 INPUT_PATH = r'D:\Research data\Conversion coating\202211'
 
 # Merged Constant
@@ -40,7 +40,7 @@ SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol,
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\SSID\202206\20220610 BMM\b31-pure NbAl\b31-Nb-time-dependent-squ_confi.ini"
+CONFIG_FILE = r"D:\Research data\Conversion coating\202211\Cu20 in solution_config.ini"
 
 config = configparser.ConfigParser()
 if Path(CONFIG_FILE).is_file():
@@ -62,6 +62,8 @@ SAMPLE_LABEL = eval(config['legends']['sample_label']) if is_ini else []        
 FIGURE_SIZE = eval(config['format']['figure_size']) if is_ini else (6.4, 4.8)                             # Cheng-Hung uses (6, 7.5), but the default is (6.4, 4.8)
 PALETTE = eval(config['format']['palette']) if is_ini else pltt.colorbrewer.diverging.Spectral_4_r        # pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap                                                                               # .mpl_colormap attribute is a continuous, interpolated map
+LINEWIDTH = eval(config['format']['linewidth']) if is_ini else 2
+FRAMELINEWIDTH = eval(config['format']['framelinewidth']) if is_ini else 2
 COLOR_INCREMENT = eval(config['format']['color_increment']) if is_ini else 0
 OFFSET = eval(config['format']['offset']) if is_ini else 0                                                # Value you want to add to an y offset for each curve.
 ENERGY_RANGE = eval(config['format']['energy_range']) if is_ini else ()                                   # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
@@ -169,11 +171,11 @@ def plot_xas(files):
             # else:
             #     sample_label = sample_name
             mu = getattr(file, file_keys[sample_index])
-            ax1.plot(energy, mu + OFFSET * increment, color=CMAP(color_idx[increment+COLOR_INCREMENT]), label=sample_label)
+            ax1.plot(energy, mu + OFFSET * increment, linewidth=LINEWIDTH, color=CMAP(color_idx[increment+COLOR_INCREMENT]), label=sample_label)
             increment += 1
             print('{:>3}     {}'.format(sample_index, sample_name))
     else:
-        color_idx = np.linspace(0, 1, len(SAMPLE_LIST)+COLOR_INCREMENT)     # Only the plots you want have their own color
+        color_idx = np.linspace(0, 1, len(SAMPLE_LIST)+COLOR_INCREMENT)   # Only the plots you want have their own color
         for sample_index in SAMPLE_LIST:
             sample_name = file_keys[sample_index]
             if len(SAMPLE_LABEL) > SAMPLE_LIST.index(sample_index):
@@ -182,11 +184,16 @@ def plot_xas(files):
                 sample_label = sample_name
             mu = getattr(file, file_keys[sample_index])
             if sample_index in STANDARD_LIST:
-                ax1.plot(energy, mu + OFFSET * increment, '--', color=CMAP(color_idx[increment+COLOR_INCREMENT]), label=sample_label)
+                ax1.plot(energy, mu + OFFSET * increment, '--', linewidth=LINEWIDTH, color=CMAP(color_idx[increment+COLOR_INCREMENT]), label=sample_label)
             else:
-                ax1.plot(energy, mu + OFFSET * increment, color=CMAP(color_idx[increment+COLOR_INCREMENT]), label=sample_label)
+                ax1.plot(energy, mu + OFFSET * increment, linewidth=LINEWIDTH, color=CMAP(color_idx[increment+COLOR_INCREMENT]), label=sample_label)
             increment += 1
             print('{:>3}     {}'.format(sample_index, sample_name))
+
+    # Frame linewidth
+    spineline = ['left', 'right', 'top', 'bottom']
+    for direction in spineline:
+        ax1.spines[direction].set_linewidth(FRAMELINEWIDTH)
 
     # Plot format
     if ENERGY_RANGE == ():
@@ -199,9 +206,10 @@ def plot_xas(files):
     x_label = r'$\mathregular{Energy\ (eV)}$'
     y_label = r'$\mathregular{Normalized\ \chi\mu(E)}$'
     plt.yticks([])  # Disable ticks
+    ax1.tick_params(width=FRAMELINEWIDTH)
     ax1.set_xlabel(x_label, fontsize=18)
     ax1.set_ylabel(y_label, fontsize=18)
-    plt.rcParams["axes.linewidth"] = 5
+    # plt.rcParams["axes.linewidth"] = 5
     plt.legend(loc='lower right', framealpha=1, frameon=False, fontsize=14, ncol=NUM_COLUMN)
     plt.tight_layout()
     if IF_SAVE:
