@@ -5,11 +5,12 @@ TODO: Auto import ref peaks from PDF card data, then put data into dictionary
 ----------------------------------------
 """
 
-from pathlib import Path
+from pathlib import Path, PurePath, PureWindowsPath
 from collections import defaultdict
 import pandas as pd
 from pprint import pprint
 from scipy.interpolate import CubicSpline
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
@@ -20,10 +21,10 @@ import palettable as pltt
 import peakutils
 from scipy import stats
 
-INPUT_PATH = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02"
-CONFIG_FILE = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\CMS_plot_config_gisaxs_b32_0.2_G.ini"
-INPUT_PATH = r"D:\Research data\SSID\202212\20221207 CMS SSMD comparison\b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000"
-CONFIG_FILE = r"D:\Research data\SSID\202212\20221207 CMS SSMD comparison\b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000\CMS_plot_config_b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000.ini"
+INPUT_PATH = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog"
+CONFIG_FILE = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog\Plot\CMS_plot_config_gisaxs_b2830_900C60M_th0.2_PeakEnhanced.ini"
+# INPUT_PATH = r"D:\Research data\SSID\202212\20221207 CMS SSMD comparison\b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000"
+# CONFIG_FILE = r"D:\Research data\SSID\202212\20221207 CMS SSMD comparison\b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000\CMS_plot_config_b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000.ini"
 CONFIG = configparser.ConfigParser()
 
 if Path(CONFIG_FILE).is_file():
@@ -39,6 +40,7 @@ else:
 FILE_TYPE = '.dat'
 ANGLE_RANGE = eval(CONFIG['samples']['angle_range'])
 SAMPLE_LIST = eval(CONFIG['samples']['sample_list'])
+FIGURE_SIZE = eval(CONFIG['format']['figure_size'])
 BATCH_NUMBER, COMPOSITION, CONDITION, INCIDENT_ANGLE = eval(CONFIG['legends']['sample_condition'])   # Whether you want to show them in the legend
 PALETTE = eval(CONFIG['format']['palette'])                                                          # pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap                                                                          # .mpl_colormap attribute is a continuous, interpolated map
@@ -49,6 +51,7 @@ GISAXS_MODE = eval(CONFIG['data_processing']['gisaxs_mode'])
 FIRST_DATAPOINT = eval(CONFIG['data_processing']['first_datapoint'])
 GISAXS_XRANGE = eval(CONFIG['data_processing']['gisaxs_xrange'])
 GISAXS_YRANGE = eval(CONFIG['data_processing']['gisaxs_yrange'])
+LEGEND_LOCATION = eval(CONFIG['format']['legend_location'])
 TITLE = eval(CONFIG['format']['output_filename'])
 OUTPUT_FOR_JADE = eval(CONFIG['format']['output_for_jade'])
 IF_SAVE = eval(CONFIG['format']['if_save'])
@@ -85,7 +88,7 @@ def giwaxs(files):
 
 def gisaxs(files):
     q_and_I_list = sorted_data(files, mode=ANGLE_RANGE)
-    gisaxs_plot(q_and_I_list, mode=GISAXS_MODE, xrange=GISAXS_XRANGE, yrange=GISAXS_YRANGE)
+    gisaxs_plot(q_and_I_list, mode=GISAXS_MODE)
 
 
 def sorted_data(files, mode=ANGLE_RANGE):
@@ -109,11 +112,11 @@ def sorted_data(files, mode=ANGLE_RANGE):
 
             # q^2 may include the negative q range so we do a filter
             # data_dict['q_list'][index] = dataframe[dataframe[:, 0] >= 0][:, 0]
-            data_dict['q_list'][index] = dataframe[658:, 0]
+            data_dict['q_list'][index] = dataframe[FIRST_DATAPOINT:, 0]
             # Find the index to have the same shape for y dataframe
             # index_for_y = data_dict['q_list'][index].shape[0]
             # data_dict['I_list'][index] = dataframe[-index_for_y:, 1]
-            data_dict['I_list'][index] = dataframe[658:, 1]
+            data_dict['I_list'][index] = dataframe[FIRST_DATAPOINT:, 1]
 
         # if index == 0:
         #     pprint(data_dict)
@@ -140,7 +143,7 @@ def background_subtraction(q_and_I_list, degree=3):
 
 
 def giwaxs_plot(q_and_I_list, mode='raw'):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=FIGURE_SIZE)
     title = TITLE
     y_max_lim = 0
     y_min_lim = 10000
@@ -192,27 +195,28 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
     # Frame linewidth
     spineline = ['left', 'right', 'top', 'bottom']
     for direction in spineline:
-        ax.spines[direction].set_linewidth(2)
+        ax.spines[direction].set_linewidth(3)
 
     # Plotting format
     plt.xlabel('q ($\mathregular{\AA}^{-1}$)', fontsize=18)
     plt.ylabel('I(q)', fontsize=18, labelpad=10)
     plt.xticks(fontsize=14)
     plt.yticks([])  # Disable ticks
-    ax.tick_params(width=2)
+    ax.tick_params(width=3)
     plt.xlim(q_and_I_list['q_list'][SAMPLE_LIST[0]].min(), q_and_I_list['q_list'][SAMPLE_LIST[0]].max())
     plt.ylim(y_min_lim-50, y_max_lim+200)
     plt.legend(loc='upper left', framealpha=1, frameon=False, fontsize=12)
     plt.title(title, fontsize=18, pad=15)
     plt.tight_layout()
     if IF_SAVE:
-        output_filename = check_filename_repetition(title)
-        plt.savefig("{}/{}.png".format(Path(INPUT_PATH), output_filename), dpi=300, transparent=False)
+        config_file_location = PureWindowsPath(CONFIG_FILE).parent
+        output_filename = check_filename_repetition(title, config_file_location)
+        plt.savefig("{}/{}.png".format(config_file_location, output_filename), dpi=300, transparent=False)
     plt.show()
 
 
 def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 120)):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=FIGURE_SIZE)
     title = TITLE
     y_max_lim = 0
     y_min_lim = 10000
@@ -254,6 +258,7 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
             plt.plot(x**2, np.log(y) + OFFSET * increment, 'o', linewidth=3, color=CMAP(color_idx[increment + COLOR_INCREMENT]),
                      label=plot_label)  # full info
             guinier_region_fit(x, y, color=CMAP(color_idx[increment + COLOR_INCREMENT]))
+        
         elif mode == 'Guinier Peak':
             plt.plot(x**2, np.log(x*y) + OFFSET * increment, linewidth=3, color=CMAP(color_idx[increment + COLOR_INCREMENT]),
                      label=plot_label)  # full info
@@ -267,6 +272,13 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
             print(f'Check guinier region q x Rg: {q_max*Rg}')
             text = f' Rg = {Rg}'
             ax.text(q_max**2, np.log(np.max(x*y)), text, fontsize=14, color='b')
+        
+        elif mode == 'Peak Enhanced':
+            plt.plot(x, x*y + OFFSET * increment, linewidth=3, color=CMAP(color_idx[increment + COLOR_INCREMENT]),
+                     label=plot_label)  # full info
+            # fitting_start = 670-FIRST_DATAPOINT
+            # guassian_peak_fit(x[fitting_start:fitting_start+50], x[fitting_start:fitting_start+50]*y[fitting_start:fitting_start+50])
+        
         else:
             plt.plot(x, y + OFFSET * increment, linewidth=3, color=CMAP(color_idx[increment + COLOR_INCREMENT]),
                  label=plot_label)  # full info
@@ -283,8 +295,13 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
         ax.spines[direction].set_linewidth(3)
 
     # Plotting format
-    plt.xlim(xrange)
-    plt.ylim(yrange)
+    if len(GISAXS_XRANGE) != 0:
+        xrange == GISAXS_XRANGE
+        plt.xlim(xrange)
+    if len(GISAXS_YRANGE) != 0:
+        yrange == GISAXS_YRANGE
+        plt.ylim(yrange)
+
     if mode == 'Guinier':
         plt.xlabel('$\mathregular{q_r^2 (\AA^{-1})}$', fontsize=18)
         plt.ylabel('Log[I(q)]', fontsize=18, labelpad=10)
@@ -296,8 +313,13 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
         plt.xlim(xrange)
         plt.ylim(yrange)
     elif mode == 'paper':
-        plt.xlabel('q_r ($\mathregular{\AA}^{-1}$)', fontsize=18)
+        plt.xlabel('$\mathregular{q_r}$ ($\mathregular{\AA}^{-1}$)', fontsize=18)
         plt.ylabel('I(q)', fontsize=18, labelpad=10)
+        plt.xscale('log')
+        plt.yscale('log')
+    elif mode =='Peak Enhanced':
+        plt.xlabel('$\mathregular{q_r}$ ($\mathregular{\AA}^{-1}$)', fontsize=18)
+        plt.ylabel('qI(q)', fontsize=18, labelpad=10)
         plt.xscale('log')
         plt.yscale('log')
     else:
@@ -309,12 +331,13 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
     plt.yticks(fontsize=14)
     # plt.yticks([])  # Disable ticks
     ax.tick_params(width=3)
-    plt.legend(loc='upper right', framealpha=1, frameon=False, fontsize=12)
-    plt.title(title, fontsize=18, pad=10)
+    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=12)
+    plt.title(title, fontsize=18, pad=15)
     plt.tight_layout()
     if IF_SAVE:
-        output_filename = check_filename_repetition(title)
-        plt.savefig("{}/{}.png".format(Path(INPUT_PATH), output_filename), dpi=300, transparent=False)
+        config_file_location = PureWindowsPath(CONFIG_FILE).parent
+        output_filename = check_filename_repetition(title, config_file_location)
+        plt.savefig("{}/{}.png".format(config_file_location, output_filename), dpi=300, transparent=False)
     plt.show()
 
 
@@ -390,7 +413,28 @@ def guinier_region_check(x, y, q_max_index, q_max_from_GPA):
     return q_min_index, q_max_index-1, slope, intercept, rvalue, pvalue, stderr
 
 
-def check_filename_repetition(output_filename):
+def guassian_peak_fit(xdata, ydata):
+    def Gauss(x, A, B):
+        y = A*np.exp(-1*B*x**2)
+        return y
+    
+    parameters, covariance = curve_fit(Gauss, xdata, ydata, method='lm')
+    print(parameters)
+    print('X data')
+    print(xdata)
+    print('Y data')
+    print(ydata)
+    fit_A = parameters[0]
+    fit_B = parameters[1]
+
+    fit_y = Gauss(xdata, fit_A, fit_B)
+    plt.plot(xdata, ydata, 'o', label='data')
+    plt.plot(xdata, fit_y, '-', label='fit')
+    
+
+
+
+def check_filename_repetition(output_filename, directory):
     """
     :param output_filename: string, output filename
     :return: string, new output filename
@@ -398,7 +442,7 @@ def check_filename_repetition(output_filename):
     print("\n==============================")
     print('Check filename repetition')
     print("------------------------------")
-    files = Path(INPUT_PATH).glob(f'*.png')
+    files = Path(directory).glob(f'*.png')
     png_list = []
     for index, file in enumerate(files):
         png_list.append(file.name[:-4])
