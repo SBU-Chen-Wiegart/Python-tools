@@ -22,7 +22,7 @@ import peakutils
 from scipy import stats
 
 INPUT_PATH = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog"
-CONFIG_FILE = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog\Plot\CMS_plot_config_gisaxs_b2830_900C60M_th0.2_PeakEnhanced.ini"
+CONFIG_FILE = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog\Plot\CMS_plot_config_gisaxs_b30_9001100C60M_th0.2_PeakEnhanced.ini"
 # INPUT_PATH = r"D:\Research data\SSID\202212\20221207 CMS SSMD comparison\b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000"
 # CONFIG_FILE = r"D:\Research data\SSID\202212\20221207 CMS SSMD comparison\b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000\CMS_plot_config_b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000.ini"
 CONFIG = configparser.ConfigParser()
@@ -303,35 +303,37 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
         plt.ylim(yrange)
 
     if mode == 'Guinier':
-        plt.xlabel('$\mathregular{q_r^2 (\AA^{-1})}$', fontsize=18)
-        plt.ylabel('Log[I(q)]', fontsize=18, labelpad=10)
+        plt.xlabel('$\mathregular{q_r^2 (\AA^{-1})}$', fontsize=20)
+        plt.ylabel('Log[I(q)]', fontsize=20, labelpad=10)
         plt.ticklabel_format(axis="x", style="sci", scilimits=(0, 0))
     elif mode == 'Guinier Peak':
-        plt.xlabel('$\mathregular{q_r^2 (\AA^{-1})}$', fontsize=18)
-        plt.ylabel('Log[qI(q)]', fontsize=18, labelpad=10)
+        plt.xlabel('$\mathregular{q_r^2 (\AA^{-1})}$', fontsize=20)
+        plt.ylabel('Log[qI(q)]', fontsize=20, labelpad=10)
         plt.ticklabel_format(axis="x", style="sci", scilimits=(0, 0))
         plt.xlim(xrange)
         plt.ylim(yrange)
     elif mode == 'paper':
-        plt.xlabel('$\mathregular{q_r}$ ($\mathregular{\AA}^{-1}$)', fontsize=18)
-        plt.ylabel('I(q)', fontsize=18, labelpad=10)
+        plt.xlabel('$\mathregular{q_r}$ ($\mathregular{\AA}^{-1}$)', fontsize=20)
+        plt.ylabel('I(q)', fontsize=20, labelpad=10)
         plt.xscale('log')
         plt.yscale('log')
     elif mode =='Peak Enhanced':
-        plt.xlabel('$\mathregular{q_r}$ ($\mathregular{\AA}^{-1}$)', fontsize=18)
-        plt.ylabel('qI(q)', fontsize=18, labelpad=10)
+        plt.xlabel('$\mathregular{q_r}$ ($\mathregular{\AA}^{-1}$)', fontsize=22)
+        plt.ylabel('qI(q)', fontsize=22, labelpad=10)
         plt.xscale('log')
         plt.yscale('log')
     else:
-        plt.xlabel('q_r ($\mathregular{\AA}^{-1}$)', fontsize=18)
-        plt.ylabel('I(q)', fontsize=18, labelpad=10)
+        plt.xlabel('q_r ($\mathregular{\AA}^{-1}$)', fontsize=20)
+        plt.ylabel('I(q)', fontsize=20, labelpad=10)
         plt.yscale('log')
 
-    plt.xticks(fontsize=14)
-    plt.yticks(fontsize=14)
+    plt.xticks(fontsize=20)
+    # ax.get_xaxis().set_tick_params(which='minor', width=3)
+    plt.yticks(fontsize=20)
     # plt.yticks([])  # Disable ticks
-    ax.tick_params(width=3)
-    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=12)
+    ax.tick_params(which='major', length=8, width=3)
+    ax.tick_params(which='minor', length=5, width=3)
+    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=20)
     plt.title(title, fontsize=18, pad=15)
     plt.tight_layout()
     if IF_SAVE:
