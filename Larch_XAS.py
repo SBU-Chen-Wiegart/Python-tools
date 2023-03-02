@@ -8,7 +8,7 @@ Color palettes for Python: https://jiffyclub.github.io/palettable/#palette-inter
 """
 
 import numpy as np
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import matplotlib.pyplot as plt
 from xraydb import guess_edge, xray_edge
 from larch.xafs import pre_edge, find_e0
@@ -27,7 +27,7 @@ FILE_TYPE instructions:
 '.txt' for plotting scans
 """
 FILE_TYPE = '.txt'
-INPUT_PATH = r'D:\Research data\Conversion coating\202211'
+INPUT_PATH = r'D:\Research data\SSID\202206\20220610 BMM\b31-pure NbAl'    # <----------------------- Data folder input
 
 # Merged Constant
 SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
@@ -40,7 +40,7 @@ SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol,
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\Conversion coating\202211\Cu20 in solution_config.ini"
+CONFIG_FILE = r"D:\Research data\SSID\202206\20220610 BMM\b31-pure NbAl\b31-Nb-time-dependent-squ_config.ini"
 
 config = configparser.ConfigParser()
 if Path(CONFIG_FILE).is_file():
@@ -202,7 +202,7 @@ def plot_xas(files):
     else:
         ax1.set_xlim(ENERGY_RANGE)
         plt.xticks(np.arange(ENERGY_RANGE[0], ENERGY_RANGE[1], step=ENERGY_INTERVAL), fontsize=14)
-    plt.title(OUTPUT_FILENAME, fontsize=20, pad=10)
+    plt.title(OUTPUT_FILENAME, fontsize=20, pad=15)
     x_label = r'$\mathregular{Energy\ (eV)}$'
     y_label = r'$\mathregular{Normalized\ \chi\mu(E)}$'
     plt.yticks([])  # Disable ticks
@@ -213,7 +213,8 @@ def plot_xas(files):
     plt.legend(loc='lower right', framealpha=1, frameon=False, fontsize=14, ncol=NUM_COLUMN)
     plt.tight_layout()
     if IF_SAVE:
-        output_filename = check_filename_repetition(OUTPUT_FILENAME)
+        config_file_location = PureWindowsPath(CONFIG_FILE).parent
+        output_filename = check_filename_repetition(OUTPUT_FILENAME, config_file_location)
         plt.savefig("{}/{}.png".format(Path(INPUT_PATH), output_filename), dpi=300, transparent=False)
     plt.show()
 
@@ -525,7 +526,7 @@ def show_data_information(group):
         print(scan_attribute, type(getattr(group, scan_attribute)))
 
 
-def check_filename_repetition(output_filename):
+def check_filename_repetition(output_filename, directory):
     """
     :param output_filename: string, output filename
     :return: string, new output filename
@@ -533,7 +534,7 @@ def check_filename_repetition(output_filename):
     print("\n==============================")
     print('Check filename repetition')
     print("------------------------------")
-    files = Path(INPUT_PATH).glob(f'*.png')
+    files = Path(directory).glob(f'*.png')
     png_list = []
     for index, file in enumerate(files):
         png_list.append(file.name[:-4])
