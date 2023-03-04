@@ -27,7 +27,7 @@ FILE_TYPE instructions:
 '.txt' for plotting scans
 """
 FILE_TYPE = '.txt'
-INPUT_PATH = r'D:\Research data\SSID\202206\20220610 BMM\b31-pure NbAl'    # <----------------------- Data folder input
+INPUT_PATH = r'D:\Research data\SSID\202302\20230216 BMM b33 SP\Sc edge'    # <----------------------- Data folder input
 
 # Merged Constant
 SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
@@ -40,7 +40,7 @@ SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol,
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\SSID\202206\20220610 BMM\b31-pure NbAl\b31-Nb-time-dependent-squ_config.ini"
+CONFIG_FILE = r"D:\Research data\SSID\202302\20230216 BMM b33 SP\Sc edge\Plot\Sc-b33-NbAlSc-SP_config.ini"
 
 config = configparser.ConfigParser()
 if Path(CONFIG_FILE).is_file():
@@ -69,7 +69,7 @@ OFFSET = eval(config['format']['offset']) if is_ini else 0                      
 ENERGY_RANGE = eval(config['format']['energy_range']) if is_ini else ()                                   # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
 ENERGY_INTERVAL = eval(config['format']['energy_interval']) if is_ini else 0                              # This parameter works only when you set a ENERGY_RANGE
 IF_SAVE = eval(config['format']['if_save']) if is_ini else True
-OUTPUT_FILENAME = config['format']['output_filename'] if is_ini else "Default"
+OUTPUT_FILENAME = eval(config['format']['output_filename']) if is_ini else "Default"
 NUM_COLUMN = 1
 
 
@@ -215,7 +215,7 @@ def plot_xas(files):
     if IF_SAVE:
         config_file_location = PureWindowsPath(CONFIG_FILE).parent
         output_filename = check_filename_repetition(OUTPUT_FILENAME, config_file_location)
-        plt.savefig("{}/{}.png".format(Path(INPUT_PATH), output_filename), dpi=300, transparent=False)
+        plt.savefig("{}/{}.png".format(Path(config_file_location), output_filename), dpi=300, transparent=False)
     plt.show()
 
 
