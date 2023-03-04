@@ -20,11 +20,16 @@ import configparser
 import palettable as pltt
 import peakutils
 from scipy import stats
+# Step 1: Give your data directory
+# GISAXS
+INPUT_PATH = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\saxs\analysis\qz=0.07_dq=0.02_b33"
+CONFIG_FILE = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\saxs\b33-NbAlSc-SP-th0.2_CMS_plot_config.ini"
 
-INPUT_PATH = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog"
-CONFIG_FILE = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog\Plot\CMS_plot_config_gisaxs_b30_9001100C60M_th0.2_PeakEnhanced.ini"
-# INPUT_PATH = r"D:\Research data\SSID\202212\20221207 CMS SSMD comparison\b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000"
-# CONFIG_FILE = r"D:\Research data\SSID\202212\20221207 CMS SSMD comparison\b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000\CMS_plot_config_b28-34_ScNbAl_SiO2Si_laserAF_pos1_x2.000.ini"
+# GIWAXS
+# INPUT_PATH = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\waxs\analysis\circular_average"
+# CONFIG_FILE = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\waxs\b34-MoTiCu-SiO2Si-th0.2_CMS_plot_config.ini"
+
+# Step 2: Confirm your config file
 CONFIG = configparser.ConfigParser()
 
 if Path(CONFIG_FILE).is_file():
@@ -40,6 +45,8 @@ else:
 FILE_TYPE = '.dat'
 ANGLE_RANGE = eval(CONFIG['samples']['angle_range'])
 SAMPLE_LIST = eval(CONFIG['samples']['sample_list'])
+SAXS_COLUMN_NAME = ['#', 'qr', 'I']                                                                  # May be updated
+WAXS_COLUMN_NAME = ['#', 'q', 'I(q)err', 'q']                                                        # May be updated
 FIGURE_SIZE = eval(CONFIG['format']['figure_size'])
 BATCH_NUMBER, COMPOSITION, CONDITION, INCIDENT_ANGLE = eval(CONFIG['legends']['sample_condition'])   # Whether you want to show them in the legend
 PALETTE = eval(CONFIG['format']['palette'])                                                          # pld.Spectral_4_r  # _r if you want to reverse the color sequence
@@ -49,8 +56,8 @@ OFFSET = eval(CONFIG['format']['offset'])                                       
 SAMPLE_LABEL = eval(CONFIG['legends']['sample_label'])
 GISAXS_MODE = eval(CONFIG['data_processing']['gisaxs_mode'])
 FIRST_DATAPOINT = eval(CONFIG['data_processing']['first_datapoint'])
-GISAXS_XRANGE = eval(CONFIG['data_processing']['gisaxs_xrange'])
-GISAXS_YRANGE = eval(CONFIG['data_processing']['gisaxs_yrange'])
+XRANGE = eval(CONFIG['format']['xrange'])
+YRANGE = eval(CONFIG['format']['yrange'])
 LEGEND_LOCATION = eval(CONFIG['format']['legend_location'])
 TITLE = eval(CONFIG['format']['output_filename'])
 OUTPUT_FOR_JADE = eval(CONFIG['format']['output_for_jade'])
@@ -98,24 +105,26 @@ def sorted_data(files, mode=ANGLE_RANGE):
         data_dict['filename_list'][index] = scattering_data.name
         print(index, scattering_data.name)
         if mode == 'wide':
+            # --------------------------------------------------- Before 2023 version
+            # dataframe = pd.read_table(scattering_data, sep="\s+",
+            #                           usecols=['#', 'q', 'qerr', 'I(q)'])\
+            #     .to_numpy()  # '#' is q column and 'qerr' is I(q) column
+            # ----------------------------------------------------
             dataframe = pd.read_table(scattering_data, sep="\s+",
-                                      usecols=['#', 'q', 'qerr', 'I(q)'])\
-                .to_numpy()  # '#' is q column and 'qerr' is I(q) column
+                                      usecols=WAXS_COLUMN_NAME)\
+                .to_numpy()  # '#' is q column and 'q' is I(q) column
             data_dict['q_list'][index] = dataframe[:, 0]
-            data_dict['I_list'][index] = dataframe[:, 2]
+            data_dict['I_list'][index] = dataframe[:, 1]
             if OUTPUT_FOR_JADE:
-                    out_file(dataframe[:, 0], dataframe[:, 2], f'Converted_{scattering_data.name}')
+                    out_file(data_dict['q_list'][index], data_dict['I_list'][index], f'Converted_{scattering_data.name}')
         elif mode == 'small':
             dataframe = pd.read_table(scattering_data, sep="\s+",
-                                      usecols=['#', 'qr', 'I']) \
+                                      usecols=SAXS_COLUMN_NAME) \
                 .to_numpy()  # '#' is q column and 'qerr' is I(q) column
 
             # q^2 may include the negative q range so we do a filter
-            # data_dict['q_list'][index] = dataframe[dataframe[:, 0] >= 0][:, 0]
             data_dict['q_list'][index] = dataframe[FIRST_DATAPOINT:, 0]
             # Find the index to have the same shape for y dataframe
-            # index_for_y = data_dict['q_list'][index].shape[0]
-            # data_dict['I_list'][index] = dataframe[-index_for_y:, 1]
             data_dict['I_list'][index] = dataframe[FIRST_DATAPOINT:, 1]
 
         # if index == 0:
@@ -203,8 +212,10 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
     plt.xticks(fontsize=14)
     plt.yticks([])  # Disable ticks
     ax.tick_params(width=3)
-    plt.xlim(q_and_I_list['q_list'][SAMPLE_LIST[0]].min(), q_and_I_list['q_list'][SAMPLE_LIST[0]].max())
-    plt.ylim(y_min_lim-50, y_max_lim+200)
+    if len(XRANGE) != 0:
+        plt.xlim(XRANGE[0], XRANGE[1])
+    if len(YRANGE) != 0:
+        plt.ylim(YRANGE[0], YRANGE[1])
     plt.legend(loc='upper left', framealpha=1, frameon=False, fontsize=12)
     plt.title(title, fontsize=18, pad=15)
     plt.tight_layout()
@@ -262,7 +273,7 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
         elif mode == 'Guinier Peak':
             plt.plot(x**2, np.log(x*y) + OFFSET * increment, linewidth=3, color=CMAP(color_idx[increment + COLOR_INCREMENT]),
                      label=plot_label)  # full info
-            new_x_for_our_of_range = x[x < np.sqrt(GISAXS_XRANGE[1])]
+            new_x_for_our_of_range = x[x < np.sqrt(XRANGE[1])]
             new_y_for_our_of_range = y[:len(new_x_for_our_of_range)]
             q_max = x[np.where(x * y == np.max(new_x_for_our_of_range * new_y_for_our_of_range))][0]
             q_max = np.round(q_max, 4)
@@ -295,11 +306,11 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
         ax.spines[direction].set_linewidth(3)
 
     # Plotting format
-    if len(GISAXS_XRANGE) != 0:
-        xrange == GISAXS_XRANGE
+    if len(XRANGE) != 0:
+        xrange == XRANGE
         plt.xlim(xrange)
-    if len(GISAXS_YRANGE) != 0:
-        yrange == GISAXS_YRANGE
+    if len(YRANGE) != 0:
+        yrange == YRANGE
         plt.ylim(yrange)
 
     if mode == 'Guinier':
@@ -333,7 +344,7 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
     # plt.yticks([])  # Disable ticks
     ax.tick_params(which='major', length=8, width=3)
     ax.tick_params(which='minor', length=5, width=3)
-    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=20)
+    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=18)
     plt.title(title, fontsize=18, pad=15)
     plt.tight_layout()
     if IF_SAVE:
@@ -344,7 +355,7 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
 
 
 def guinier_region_fit(x, y, color='k'):
-    new_x_for_our_of_range = x[x < np.sqrt(GISAXS_XRANGE[1])]
+    new_x_for_our_of_range = x[x < np.sqrt(XRANGE[1])]
     new_y_for_our_of_range = y[:len(new_x_for_our_of_range)]
     q_max_from_GPA = x[np.where(x * y == np.max(new_x_for_our_of_range * new_y_for_our_of_range))][0]
     print(f'q_max_from_GPA = {np.round(q_max_from_GPA, 4)}')
