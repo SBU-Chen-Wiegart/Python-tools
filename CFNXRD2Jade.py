@@ -13,22 +13,22 @@ from pathlib import Path
 import palettable.colorbrewer.diverging as pld
 
 # Step 1: Paste your directory
-INPUT_PATH = r"D:\Research data\SSID\202211\20221121 XRD b35 SP"   # <-- Enter the folder position you want to explore
+INPUT_PATH = r"D:\Research data\SSID\202205\20220526 XRD b31 NbAl"   # <--- Give the folder directory you want to explore
 
 # Step 2: Set up your plotting parameters
 # CONSTANT
 FILE_TYPE = '.xy'
-PLOT_LIST = [6, 5, 3, 4]    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
-SAMPLE_LABEL = ['Sapphire', 'Pristine', '900C00M', '900C60M']  # [] for default or add a specific name list
+PLOT_LIST = [5, 4, 2]    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
+SAMPLE_LABEL = ['Substrate', 'Pristine', '900C60M']  # [] for default or add a specific name list
 OUTPUT = False   # "True" if you want to save the converted file
-Y_RANGE = (-50, 100)   # Increment of ylim
-PLOT_OFFSET = 100    # Value you want to add to an offset for each curve.
+Y_RANGE = (-100, 500)   # Increment of ylim
+PLOT_OFFSET = 500    # Value you want to add to an offset for each curve.
 PLOT_FIGURE = True  # "True" if you want to show the plots
 IF_LEGEND = True    # "True" if you want to show the legend
-LEGEND_LOCATION = 'upper right'
+LEGEND_LOCATION = 'upper left'
 PALETTE = pld.Spectral_4_r  # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
-OUTPUT_FILENAME = 'b33_NbAlSc_SP'
+OUTPUT_FILENAME = 'b31-NbAl-SiO2Si' # <-- Enter your figure title and file name
 # Good luck for your data conversion!
 
 
@@ -118,7 +118,7 @@ def intensity_plot(dictionary_of_I_and_q):
     # Outer frame edge width
     spineline = ['left', 'right', 'top', 'bottom']
     for direction in spineline:
-        ax.spines[direction].set_linewidth('2')
+        ax.spines[direction].set_linewidth(1.5)
 
     x_label = r'$\mathregular{2\theta \ (degree)}$'
     y_label = r'Intensity (arb. units)'
