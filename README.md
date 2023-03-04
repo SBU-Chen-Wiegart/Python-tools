@@ -4,8 +4,10 @@ Data Analysis Tools for X-ray Spectroscopy
 ## Table of Contents
 
 - [Larch XAS.py](#larch-XASpy)
-- [CFNXRD2Jade.py](#cFNXRD2Jadepy)
+- [CFNXRD2Jade.py](#CFNXRD2Jadepy)
 - [plot xrd SSID insitu.py](#plot-xrd-SSID-insitupy)
+- [CMS GIWAXS and GISAXS.py](#CMS-GIWAXS-and-GISAXSpy)
+- [CMS SAXS data export](#CMS-SAXS-data-export)
 
 ## Larch XAS.py
 > Citation: M. Newville, Larch: An Analysis Package For XAFS And Related Spectroscopies. Journal of Physics: Conference Series, 430:012007 (2013).
@@ -94,17 +96,25 @@ SHOW_DATA_INFORMATION = False
 #### Plot spectrum (optional)
 
 * Download **larch_plot_config.ini**
-* Copy and paste the absolute directory of the config file for plotting .txt files
+* Paste the absolute directory of **larch_plot_config.ini** in **Larch_XAS.py** file 
 ```
 CONFIG_FILE = r"D:\Research data\SSID\202205\20220509 20210221 BMM\b28_Sc_pure_config.ini"
+```
+* Update the config file. The key parameters:
+```
+sample_list = [0, 1]
+standard_list = [1]
+sample_label = ['Pure Sc']
+energy_range = (4425, 4625)
+output_filename = 'Sc-b33-NbAlSc-SP'
 ```
 ## CFNXRD2Jade.py
 ### Usage
 
 ---
-#### Step 1: Paste your data directory
+* Paste your data directory
 
-#### Step 2: Set up your plotting parameters
+* Set up your plotting parameters
 
 ## plot xrd SSID insitu.py
 <p align="center">
@@ -139,4 +149,45 @@ PLOT_FIGURE = True
 ```
 SAVE_IMG = False
 ```
+
+## CMS GIWAXS and GISAXS.py
+### Usage
+* Download **CMS_plot_config.ini**
+* Paste your data directory in the **CMS_GIWAXS_and_GISAXS.py**
+```
+INPUT_PATH = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\saxs\analysis\qz=0.07_dq=0.02_b33"
+```
+* Paste your **CMS_plot_config.ini** absolute directory
+```
+CONFIG_FILE = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\saxs\b33-NbAlSc-SP-th0.2_CMS_plot_config.ini"
+```
+* Update the config file for your data plot
+The key paramteres:
+```
+sample_list = [0]
+angle_range = 'wide' or 'small'
+sample_label = ['Pristine']
+output_filename = 'b33-NbAl and Sc-SP-th0.2'
+output_for_jade = False or True    # Converted file for Jade reading
+if_save = True or False
+```
+
+## CMS SAXS data export
+* Download **SciAnalysis** folder
+* Open saxs\analysis\runXS.py
+* Paste the directory of the **SciAnalysis** folder
+```
+SciAnalysis_PATH=r"D:\Research data\SSID\Advanced Computer Python\Python-tools\SciAnalysis"
+```
+* Update the protocols command to reduce 2D scattering data
+```
+protocols = [Protocols.linecut_qr(name='qz=0.07_dq=0.02_b33', qz=0.07, dq=0.02, xlog=False, ylog=True, show_region=True, gridlines=True, plot_range=[0.004, None, 1, None])]
+```
+name: Exported folder name
+
+qz: Integration center along qz direction
+
+dq: Integration range
+
+plot_range: [x1, y1, x2, y2]
 ## License
