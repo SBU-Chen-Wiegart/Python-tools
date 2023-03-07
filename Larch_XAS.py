@@ -26,9 +26,9 @@ FILE_TYPE instructions:
 '' or '.dat' for merging transmission scans
 '.txt' for plotting scans
 """
-FILE_TYPE = '.txt'
-INPUT_PATH = r'D:\Research data\SSID\202302\20230216 BMM b33 SP\Sc edge'    # <----------------------- Data folder input
-
+FILE_TYPE = '.prj'
+INPUT_PATH = r'D:\Research data\SSID\202302\20230216 BMM b33 SP\Nb edge'    # <----------------------- Data folder input
+OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 # Merged Constant
 SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
 IF_NOR = False   # Do normalization for fluorescence scans
@@ -76,6 +76,8 @@ NUM_COLUMN = 1
 def main():
     files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
 
+    OUTPUT_PATH.mkdir()    # Create an output folder to save all generated data/files
+
     if FILE_TYPE == '.prj':
         # new_merge_project = create_athena(f'default.prj')     # Call the athena_project.py in larch.io
         new_merge_project = athena_project.create_athena(f'default.prj')    # Call athena_project.py in current folder
@@ -84,13 +86,13 @@ def main():
             if 'Created' not in file_prj.name:
                 merge_scan(file_prj, new_merge_project)
 
-        new_merge_project.save(f'{Path(INPUT_PATH)}/Created_group.prj')
+        new_merge_project.save(f'{OUTPUT_PATH}/Created_group.prj')
         print('\n=================================================================================')
         print(f'Save merge project into ---> Created_group.prj')
         print('=================================================================================')
 
         # Call Path again to grab the created athena project
-        files = Path(INPUT_PATH).glob(f'*.prj')
+        files = OUTPUT_PATH.glob(f'*.prj')
         calibrate_energy(files)
 
     elif FILE_TYPE == '.txt':
@@ -103,7 +105,7 @@ def main():
         read_transmission(files)
 
         # Create a group prj containing all sample data
-        files = Path(INPUT_PATH).glob(f'*.prj')  # Import input path to read prj files which have been processed
+        files = OUTPUT_PATH.glob(f'*.prj')  # Import input path to read prj files which have been processed
         for index, file_prj in enumerate(files):
             if '.prj' in file_prj.name and 'Created' not in file_prj.name:
                 group = read_ascii(f'{file_prj}')       # <------------------------- take care, not read_athena
@@ -120,13 +122,13 @@ def main():
                 print(sample_name)
                 new_merge_project.add_group(group, sample_name)
 
-        new_merge_project.save(f'{Path(INPUT_PATH)}/Created_transmission_group.prj')
+        new_merge_project.save(f'{OUTPUT_PATH}/Created_transmission_group.prj')
         print('=================================================================================')
         print(f'Save merge project into ---> Created_transmission_group.prj')
         print('=================================================================================')
 
         # Call Path again to grab the created athena project
-        files = Path(INPUT_PATH).glob(f'*.prj')
+        files = OUTPUT_PATH.glob(f'*.prj')
         calibrate_energy(files)
 
 
@@ -511,7 +513,7 @@ def calibrate_energy(files):
         filename = f'{data.label}'.replace('-', '_').replace('(', '').replace(')', '')
         new_merge_project.add_group(data, filename)
 
-    new_merge_project.save(f'{Path(INPUT_PATH)}/Created_group_with_calibration.prj')
+    new_merge_project.save(f'{OUTPUT_PATH}/Created_group_with_calibration.prj')
     print('=================================================================================')
     print(f'Save merge project into ---> Created_group_with_calibration.prj')
     print('=================================================================================')
