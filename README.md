@@ -100,7 +100,9 @@ SHOW_DATA_INFORMATION = False
 ```
 CONFIG_FILE = r"D:\Research data\SSID\202205\20220509 20210221 BMM\b28_Sc_pure_config.ini"
 ```
-* Update the config file. The key parameters:
+* Update the config file. 
+
+The key parameters:
 ```
 sample_list = [0, 1]
 standard_list = [1]
@@ -113,9 +115,24 @@ output_filename = 'Sc-b33-NbAlSc-SP'
 
 ---
 * Paste your data directory
-
+```
+INPUT_PATH = r"D:\Research data\SSID\202205\20220526 XRD b31 NbAl"
+```
 * Set up your plotting parameters
-
+```
+FILE_TYPE = '.xy'
+PLOT_LIST = [5, 4, 2]    
+SAMPLE_LABEL = ['Substrate', 'Pristine', '900C60M']  
+OUTPUT = False   
+Y_RANGE = (-100, 500)   # Increment of ylim. ex: (ymin-100, ymax+500)
+PLOT_OFFSET = 500    
+PLOT_FIGURE = True  
+IF_LEGEND = True    
+LEGEND_LOCATION = 'upper left'
+PALETTE = pld.Spectral_4_r  
+CMAP = PALETTE.mpl_colormap     
+OUTPUT_FILENAME = 'b31-NbAl-SiO2Si'
+```
 ## plot xrd SSID insitu.py
 <p align="center">
   <img src="./XPD_time.struct_time(tm_year=2022, tm_mon=4, tm_mday=21, tm_hour=23, tm_min=9, tm_sec=11, tm_wday=3, tm_yday=111, tm_isdst=1).png" alt="Size Limit CLI" width="738">
@@ -161,7 +178,8 @@ INPUT_PATH = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\saxs\analysis\qz
 ```
 CONFIG_FILE = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\saxs\b33-NbAlSc-SP-th0.2_CMS_plot_config.ini"
 ```
-* Update the config file for your data plot
+* Update the config file for your data plot.
+
 The key paramteres:
 ```
 sample_list = [0]
