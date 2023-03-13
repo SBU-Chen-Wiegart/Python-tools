@@ -33,6 +33,7 @@ FILE_TYPE instructions:
 FILE_TYPE = ''
 INPUT_PATH = r'D:\Research data\SSID\202206\20220610 BMM\test'    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
+
 # Merged Constant
 SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
 IF_NOR = False   # Do normalization for fluorescence scans
@@ -320,18 +321,19 @@ def create_transmission_prj(files):
         if scanname[-3:].isnumeric() or scanname[-3:] == 'dat':   # <---- file type .001, .002, .003, or 0001.dat, etc.
             print(index, scanname)
             scan = read_ascii(scan)
+            scan_header = str(scan.header)
+            scan_plot_hint_index = scan_header.find('# Scan.plot_hint')
+            plot_hint = scan_header[scan_plot_hint_index: scan_header.find("'", scan_plot_hint_index)]
 
             if SHOW_DATA_INFORMATION:
                 print("\n==============================")
                 print(f'Scan attributes in {scanname}')
                 print("------------------------------")
-                print(scanname.find(' '))
-                scan_header = str(scan.header)
-                scan_plot_hint_index = scan_header.find('# Scan.plot_hint')
-                print(scan_header[scan_plot_hint_index: scan_header.find(',', scan_plot_hint_index)])
+                print('Attributes:', scan.__dir__())
+                print('Header:')
+                pprint(scan._members()['header'])
                 print('Data columns:', scan.array_labels)
                 show_data_information(scan)
-                print('')
 
             # Append energy, mu!!!
             if scanname[-3:] == 'dat':
@@ -357,7 +359,20 @@ def create_transmission_prj(files):
                 tens_digit = int(scanname[-2:]) // 10 * 10
                 units_digit = int(scanname[-2:]) % 10
                 if f'{sample_name}_00{tens_digit + units_digit}' not in SKIP_SCANS:
-                    scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.i0 / scan.it))    # <--- Transmission
+                    if 'ln' in plot_hint:
+                        scan_dictionary[f'{sample_name}_energy_mu'].append(
+                            np.log(scan.i0 / scan.it))  # <----------------------------------------------- Transmission
+                    else:
+                        print('Detectors:')
+                        fluorescence_total_counts = 0
+                        for if_index in range(7, 11):
+                            fluorescence_detector = scan.array_labels[if_index]
+                            print(fluorescence_detector)
+                            fluorescence_counts = getattr(scan, fluorescence_detector)
+                            fluorescence_total_counts += fluorescence_counts
+                        scan_dictionary[f'{sample_name}_energy_mu'].append(
+                            fluorescence_total_counts / scan.i0)  # <------------------------------------- Fluorescence
+                    print('')
 
     # Append merged data, so each item will contain energy, reference, scan1, scan2, scan3, etc... and a merged scan.
     print("\n==============================")
