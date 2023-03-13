@@ -27,10 +27,15 @@ import configparser
 """
 FILE_TYPE instructions:
 '.prj' for merging fluorescence scans
-'' or '.dat' for merging transmission scans
+'' or '.dat' for merging single scan
 '.txt' for plotting scans
+---------------------------------------------
+TRANSMISSION_MODE instructions:
+'Auto' is default to process the transmission data based on the notation in the raw file
+Otherwise True or False to decide what type of data you want to export (transmission or fluorescence scans)
 """
 FILE_TYPE = ''
+TRANSMISSION_MODE = 'Auto'
 INPUT_PATH = r'D:\Research data\SSID\202206\20220610 BMM\test'    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
@@ -359,19 +364,34 @@ def create_transmission_prj(files):
                 tens_digit = int(scanname[-2:]) // 10 * 10
                 units_digit = int(scanname[-2:]) % 10
                 if f'{sample_name}_00{tens_digit + units_digit}' not in SKIP_SCANS:
-                    if 'ln' in plot_hint:
-                        scan_dictionary[f'{sample_name}_energy_mu'].append(
-                            np.log(scan.i0 / scan.it))  # <----------------------------------------------- Transmission
-                    else:
-                        print('Detectors:')
-                        fluorescence_total_counts = 0
-                        for if_index in range(7, 11):
-                            fluorescence_detector = scan.array_labels[if_index]
-                            print(fluorescence_detector)
-                            fluorescence_counts = getattr(scan, fluorescence_detector)
-                            fluorescence_total_counts += fluorescence_counts
-                        scan_dictionary[f'{sample_name}_energy_mu'].append(
-                            fluorescence_total_counts / scan.i0)  # <------------------------------------- Fluorescence
+                    if TRANSMISSION_MODE == 'Auto':
+                        if 'ln' in plot_hint:
+                            scan_dictionary[f'{sample_name}_energy_mu'].append(
+                                np.log(scan.i0 / scan.it))  # <------------------------------------------- Transmission
+                        else:
+                            print('Detectors:')
+                            fluorescence_total_counts = 0
+                            for if_index in range(7, 11):
+                                fluorescence_detector = scan.array_labels[if_index]
+                                print(fluorescence_detector)
+                                fluorescence_counts = getattr(scan, fluorescence_detector)
+                                fluorescence_total_counts += fluorescence_counts
+                            scan_dictionary[f'{sample_name}_energy_mu'].append(
+                                fluorescence_total_counts / scan.i0)  # <--------------------------------- Fluorescence
+                    else:       # User may want to decide which data type they want to export
+                        if TRANSMISSION_MODE:
+                            scan_dictionary[f'{sample_name}_energy_mu'].append(
+                                np.log(scan.i0 / scan.it))  # <------------------------------------------- Transmission
+                        else:
+                            print('Detectors:')
+                            fluorescence_total_counts = 0
+                            for if_index in range(7, 11):
+                                fluorescence_detector = scan.array_labels[if_index]
+                                print(fluorescence_detector)
+                                fluorescence_counts = getattr(scan, fluorescence_detector)
+                                fluorescence_total_counts += fluorescence_counts
+                            scan_dictionary[f'{sample_name}_energy_mu'].append(
+                                fluorescence_total_counts / scan.i0)  # <--------------------------------- Fluorescence
                     print('')
 
     # Append merged data, so each item will contain energy, reference, scan1, scan2, scan3, etc... and a merged scan.

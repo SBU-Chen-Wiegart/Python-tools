@@ -53,7 +53,7 @@ If merging fluorescence scans (_e.g._ BNL NSLS-II BMM)
 ```
 FILE_TYPE = '.prj'
 ```
-If merging transmission scans (_e.g._ BNL NSLS-II BMM)
+If merging single scan (_e.g._ BNL NSLS-II BMM)
 ```
 FILE_TYPE = ''
 ```
@@ -64,6 +64,11 @@ FILE_TYPE = '.dat'
 If plotting scans file exported from Athena
 ```
 FILE_TYPE = '.txt'
+```
+'Auto' is default to process the transmission data based on the notation in the raw file;
+Otherwise True or False to decide what type of data you want to export (transmission or fluorescence scans)
+```
+TRANSMISSION_MODE = 'Auto'
 ```
 
 Copy and paste the directory of the data folder
