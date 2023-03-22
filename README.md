@@ -66,7 +66,8 @@ If plotting scans file exported from Athena
 FILE_TYPE = '.txt'
 ```
 'Auto' is default to process the transmission data based on the notation in the raw file;
-Otherwise True or False to decide what type of data you want to export (transmission or fluorescence scans)
+Otherwise True or False to decide what type of data you want to export (transmission or fluorescence scans).
+True for transmission scans; False for fluorescence scans
 ```
 TRANSMISSION_MODE = 'Auto'
 ```
@@ -126,17 +127,19 @@ INPUT_PATH = r"D:\Research data\SSID\202205\20220526 XRD b31 NbAl"
 * Set up your plotting parameters
 ```
 FILE_TYPE = '.xy'
-PLOT_LIST = [5, 4, 2]    
-SAMPLE_LABEL = ['Substrate', 'Pristine', '900C60M']  
-OUTPUT = False   
-Y_RANGE = (-100, 500)   # Increment of ylim. ex: (ymin-100, ymax+500)
-PLOT_OFFSET = 500    
-PLOT_FIGURE = True  
-IF_LEGEND = True    
+PLOT_LIST = [5, 3]                      
+SAMPLE_LABEL = ['On Sapphire', 'On Fused Silica']                   
+OUTPUT = False                      
+Y_RANGE = (-100, 500)               
+PLOT_OFFSET = 500                   
+FRAMELINEWIDTH = 2
+LINEWIDTH = 2
+IF_SAVE = True                    
+IF_LEGEND = True                   
 LEGEND_LOCATION = 'upper left'
-PALETTE = pld.Spectral_4_r  
-CMAP = PALETTE.mpl_colormap     
-OUTPUT_FILENAME = 'b31-NbAl-SiO2Si'
+PALETTE = pld.Spectral_4_r          
+CMAP = PALETTE.mpl_colormap         
+OUTPUT_FILENAME = 'b34 - MoTiCu - 800C30M' 
 ```
 ## plot xrd SSID insitu.py
 <p align="center">

@@ -13,23 +13,26 @@ from pathlib import Path
 import palettable.colorbrewer.diverging as pld
 
 # Step 1: Paste your directory
-INPUT_PATH = r"D:\Research data\SSID\202205\20220526 XRD b31 NbAl"   # <--- Give the folder directory you want to explore
+INPUT_PATH = r"D:\Research data\SSID\202303\20230321 XRD Si contamination and MoTiCu"   # <--- Give the folder directory you want to explore
 
 # Step 2: Set up your plotting parameters
 # CONSTANT
 FILE_TYPE = '.xy'
-PLOT_LIST = [5, 4, 2]    # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
-SAMPLE_LABEL = ['Substrate', 'Pristine', '900C60M']  # [] for default or add a specific name list
-OUTPUT = False   # "True" if you want to save the converted file
-Y_RANGE = (-100, 500)   # Increment of ylim
-PLOT_OFFSET = 500    # Value you want to add to an offset for each curve.
-PLOT_FIGURE = True  # "True" if you want to show the plots
-IF_LEGEND = True    # "True" if you want to show the legend
+PLOT_LIST = [5, 3]                      # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
+SAMPLE_LABEL = ['On Sapphire', 'On Fused Silica']                   # [] for default or add a specific name list
+OUTPUT = False                      # "True" if you want to save the converted file
+Y_RANGE = (-100, 500)               # Increment of ylim
+PLOT_OFFSET = 500                   # Value you want to add to an offset for each curve.
+FRAMELINEWIDTH = 2
+LINEWIDTH = 2
+IF_SAVE = True                     # "True" if you want to save the plots
+IF_LEGEND = True                    # "True" if you want to show the legend
 LEGEND_LOCATION = 'upper left'
-PALETTE = pld.Spectral_4_r  # _r if you want to reverse the color sequence
-CMAP = PALETTE.mpl_colormap     # .mpl_colormap attribute is a continuous, interpolated map
-OUTPUT_FILENAME = 'b31-NbAl-SiO2Si' # <-- Enter your figure title and file name
-# Good luck for your data conversion!
+PALETTE = pld.Spectral_4_r          # _r if you want to reverse the color sequence
+CMAP = PALETTE.mpl_colormap         # .mpl_colormap attribute is a continuous, interpolated map
+OUTPUT_FILENAME = 'b34 - MoTiCu - 800C30M' # <------------------------------------------------------- Enter your figure title and file name
+
+# --------------------Good luck for your data conversion!--------------------
 
 
 def main():
@@ -111,14 +114,14 @@ def intensity_plot(dictionary_of_I_and_q):
             sample_name = SAMPLE_LABEL[PLOT_LIST.index(i)]
 
         print(i, dictionary_of_I_and_q['filename_list'][i])
-        plt.plot(x, y, color=CMAP(color_idx[plot_sequence]), label=f'{sample_name}')
+        plt.plot(x, y, linewidth=LINEWIDTH ,color=CMAP(color_idx[plot_sequence]), label=f'{sample_name}')
         plot_sequence += 1
 
     # Plotting format
     # Outer frame edge width
     spineline = ['left', 'right', 'top', 'bottom']
     for direction in spineline:
-        ax.spines[direction].set_linewidth(1.5)
+        ax.spines[direction].set_linewidth(FRAMELINEWIDTH)
 
     x_label = r'$\mathregular{2\theta \ (degree)}$'
     y_label = r'Intensity (arb. units)'
@@ -126,7 +129,7 @@ def intensity_plot(dictionary_of_I_and_q):
     ax.set_ylabel(y_label, fontsize=18)
     plt.yticks([])  # Disable ticks
     plt.xticks(fontsize=14)
-    ax.tick_params(width=2)
+    ax.tick_params(width=FRAMELINEWIDTH)
 
     plt.xlim(10, 80)
     y_limit_max = dictionary_of_I_and_q['I_list'][index[-1]].max() + plot_sequence * PLOT_OFFSET + Y_RANGE[1]
@@ -137,10 +140,10 @@ def intensity_plot(dictionary_of_I_and_q):
         plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=14)
     plt.title(OUTPUT_FILENAME, fontsize=20, pad=10)
     plt.tight_layout()
-    if PLOT_FIGURE:
+    if IF_SAVE:
         output_filename = check_filename_repetition(OUTPUT_FILENAME)
         plt.savefig("{}/{}.png".format(Path(INPUT_PATH), output_filename), dpi=300, transparent=False)
-        plt.show()
+    plt.show()
 
 
 def check_filename_repetition(output_filename):
