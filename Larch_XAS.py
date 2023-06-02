@@ -7,7 +7,7 @@ Github source: https://github.com/xraypy/xraylarch
 Color palettes for Python: https://jiffyclub.github.io/palettable/#palette-interface
 """
 print('Import packages...')
-from rich.progress import track
+# from rich.progress import track
 import time
 import numpy as np
 from pathlib import Path, PureWindowsPath
@@ -33,10 +33,11 @@ FILE_TYPE instructions:
 TRANSMISSION_MODE instructions:
 'Auto' is default to process the transmission data based on the notation in the raw file
 Otherwise True or False to decide what type of data you want to export (transmission or fluorescence scans)
+True for transmission scans; False for fluorescence scans
 """
-FILE_TYPE = ''
+FILE_TYPE = '.txt'   # <------------------------------------------------------------------------------------- data type
 TRANSMISSION_MODE = 'Auto'
-INPUT_PATH = r'D:\Research data\SSID\202206\20220610 BMM\test'    # <----------------------- Data folder input
+INPUT_PATH = r'D:\Research data\SSID\202305\20230525 BMM SSID wo Si\Output_files'    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
 # Merged Constant
@@ -50,7 +51,7 @@ SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol,
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\SSID\202302\20230216 BMM b33 SP\Nb edge\Output_files\Nb-b33-NbAlSc-SP_config.ini"
+CONFIG_FILE = r"D:\Research data\SSID\202305\20230525 BMM SSID wo Si\Output_files\b36_Nb.ini"   # <-------------------- .ini setting for plotting
 
 config = configparser.ConfigParser()
 if Path(CONFIG_FILE).is_file():
@@ -89,7 +90,8 @@ def main():
     new_merge_project = athena_project.create_athena(f'default.prj')  # Call athena_project.py in current folder
 
     if FILE_TYPE != '.txt':
-        OUTPUT_PATH.mkdir()    # Create an output folder to save all generated data/files
+        if not OUTPUT_PATH.exists():
+            OUTPUT_PATH.mkdir()    # Create an output folder to save all generated data/files
 
     if FILE_TYPE == '.prj':
         process_prj_file(files, new_merge_project)
@@ -152,7 +154,7 @@ def plot_xas(files):
             increment += 1
             print('{:>3}     {}'.format(sample_index, sample_name))
     else:
-        color_idx = np.linspace(0, 1, len(SAMPLE_LIST)+COLOR_INCREMENT)   # Only the plots you want have their own color
+        color_idx = np.linspace(0, 1, len(SAMPLE_LIST)+COLOR_INCREMENT)   # Only the plots you want their own color
         for sample_index in SAMPLE_LIST:
             sample_name = file_keys[sample_index]
             if len(SAMPLE_LABEL) > SAMPLE_LIST.index(sample_index):
@@ -181,7 +183,7 @@ def plot_xas(files):
         plt.xticks(np.arange(ENERGY_RANGE[0], ENERGY_RANGE[1], step=ENERGY_INTERVAL), fontsize=14)
     plt.title(OUTPUT_FILENAME, fontsize=20, pad=15)
     x_label = r'$\mathregular{Energy\ (eV)}$'
-    y_label = r'$\mathregular{Normalized\ \chi\mu(E)}$'
+    y_label = r'$\mathregular{Normalized\ x\mu(E)}$'
     plt.yticks([])  # Disable ticks
     ax1.tick_params(width=FRAMELINEWIDTH)
     ax1.set_xlabel(x_label, fontsize=18)
@@ -436,7 +438,7 @@ def create_transmission_prj(files):
         plt.xticks(fontsize=14)
         plt.title(sample_name, fontsize=20)
         x_label = r'$\mathregular{Energy\ (eV)}$'
-        y_label = r'$\mathregular{\chi\mu(E)}$'
+        y_label = r'$\mathregular{x\mu(E)}$'
         plt.yticks(fontsize=14)
         ax.set_xlabel(x_label, fontsize=18)
         ax.set_ylabel(y_label, fontsize=18)
