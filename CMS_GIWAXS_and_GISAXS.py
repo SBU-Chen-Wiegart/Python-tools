@@ -27,6 +27,7 @@ import peakutils
 
 # GIWAXS
 INPUT_PATH = r"D:\Research data\SSID\202308\20230803 CMS PTA\G3-01_MoTiCu_ex30M"
+OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\G3-01_MoTiCu_ex30M\G3-01_MoTiCu_ex30M-th0.5.ini"
 
 # Step 2: Confirm your config file
@@ -72,6 +73,9 @@ def main():
     #     print(index, dat_file.name)
     # print('-----------------------------------------')
     files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')  # Call Path again to grab the file
+
+    if not OUTPUT_PATH.exists():
+        OUTPUT_PATH.mkdir()    # Create an output folder to save all generated data/files
 
     if ANGLE_RANGE == 'wide':
         print('=============================================')
@@ -477,17 +481,21 @@ def out_file(q, intensity, filename):
     """
     print('=================================================================================')
     short_filename = filename[:filename.find('_pos1')] + '-xposi' + filename[filename.find("_x") + 2:filename.find(
-        "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6]
+        "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6] + '.xy'
     print(f'Converting CMS GIWAXS data to --> {short_filename}')
-    filename = os.path.join(INPUT_PATH+'/', short_filename + '.xy')
-    with open(filename, 'w') as out:
+    # filename = os.path.join(OUTPUT_PATH+'/', short_filename + '.xy')
+    output_filename = OUTPUT_PATH / short_filename
+    with open(output_filename, 'w') as out:
         out.write('q I(q)\n')
         for i in range(len(q)):
             out.write(str('{:.5f}'.format(q[i]))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
 
+    short_filename = filename[:filename.find('_pos1')] + '-xposi' + filename[filename.find("_x") + 2:filename.find(
+        "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6] + 'tth' + '.xy'
     print(f'Converting CMS GIWAXS data to --> {short_filename}_tth')
-    filename = os.path.join(INPUT_PATH+'/', short_filename + 'tth' + '.xy')
-    with open(filename, 'w') as out:
+    # filename = os.path.join(OUTPUT_PATH+'/', short_filename + 'tth' + '.xy')
+    output_filename = OUTPUT_PATH / short_filename
+    with open(output_filename, 'w') as out:
         out.write('tth I(tth)\n')
         for i in range(len(q)):
             tth = 2 * np.arcsin(q[i] * 1.5406 / 4 / np.pi) * 180 / np.pi
