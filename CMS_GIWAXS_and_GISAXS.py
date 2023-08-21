@@ -19,15 +19,15 @@ import os
 import configparser
 import palettable as pltt
 import peakutils
-from scipy import stats
+
 # Step 1: Give your data directory
 # GISAXS
-INPUT_PATH = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\saxs\analysis\qz=0.07_dq=0.02_b33"
-CONFIG_FILE = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\saxs\b33-NbAlSc-SP-th0.2_CMS_plot_config.ini"
+# INPUT_PATH = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog"
+# CONFIG_FILE = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog\Plot\CMS_plot_config_gisaxs_b28_9001100C60M_th0.2_PeakEnhanced.ini"
 
 # GIWAXS
-# INPUT_PATH = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\waxs\analysis\circular_average"
-# CONFIG_FILE = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\waxs\b34-MoTiCu-SiO2Si-th0.2_CMS_plot_config.ini"
+INPUT_PATH = r"D:\Research data\SSID\202308\20230803 CMS PTA\G3-01_MoTiCu_ex30M"
+CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\G3-01_MoTiCu_ex30M\G3-01_MoTiCu_ex30M-th0.5.ini"
 
 # Step 2: Confirm your config file
 CONFIG = configparser.ConfigParser()
@@ -46,7 +46,8 @@ FILE_TYPE = '.dat'
 ANGLE_RANGE = eval(CONFIG['samples']['angle_range'])
 SAMPLE_LIST = eval(CONFIG['samples']['sample_list'])
 SAXS_COLUMN_NAME = ['#', 'qr', 'I']                                                                  # May be updated
-WAXS_COLUMN_NAME = ['#', 'q', 'I(q)err', 'q']                                                        # May be updated
+WAXS_COLUMN_NAME = ['#', 'q', 'I(q)err', 'q']                                                        # May be updated, then update: data_dict['I_list'][index] = dataframe[:, 1]
+# WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)']                                                      # Before 2023                                                                                # 13.5 keV in nm
 FIGURE_SIZE = eval(CONFIG['format']['figure_size'])
 BATCH_NUMBER, COMPOSITION, CONDITION, INCIDENT_ANGLE = eval(CONFIG['legends']['sample_condition'])   # Whether you want to show them in the legend
 PALETTE = eval(CONFIG['format']['palette'])                                                          # pld.Spectral_4_r  # _r if you want to reverse the color sequence
@@ -467,9 +468,9 @@ def check_filename_repetition(output_filename, directory):
     return output_filename
 
 
-def out_file(tth, intensity, filename):
+def out_file(q, intensity, filename):
     """
-    :param tth: Array, an array stores 2theta
+    :param q: Array, an array stores 2theta
     :param intensity: Array, an array stores intensity
     :param filename: List, a list stores filenames
     :return: None
@@ -481,11 +482,17 @@ def out_file(tth, intensity, filename):
     filename = os.path.join(INPUT_PATH+'/', short_filename + '.xy')
     with open(filename, 'w') as out:
         out.write('q I(q)\n')
-        for i in range(len(tth)):
-            out.write(str('{:.5f}'.format(tth[i]))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
-    print('=================================================================================')
-    print(' ')
+        for i in range(len(q)):
+            out.write(str('{:.5f}'.format(q[i]))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
 
+    print(f'Converting CMS GIWAXS data to --> {short_filename}_tth')
+    filename = os.path.join(INPUT_PATH+'/', short_filename + 'tth' + '.xy')
+    with open(filename, 'w') as out:
+        out.write('tth I(tth)\n')
+        for i in range(len(q)):
+            tth = 2 * np.arcsin(q[i] * 1.5406 / 4 / np.pi) * 180 / np.pi
+            out.write(str('{:.5f}'.format(tth))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
+    print('=================================================================================')
 
 if __name__ == '__main__':
     main()
