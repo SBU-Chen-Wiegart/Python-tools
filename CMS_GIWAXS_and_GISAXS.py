@@ -26,9 +26,9 @@ import peakutils
 # CONFIG_FILE = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog\Plot\CMS_plot_config_gisaxs_b28_9001100C60M_th0.2_PeakEnhanced.ini"
 
 # GIWAXS
-INPUT_PATH = r"D:\Research data\SSID\202308\20230803 CMS PTA\G3-01_MoTiCu_ex30M"
+INPUT_PATH = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\maxs\analysis\circular_average_batch_conversion\G1-01_NbAlSc_ex30M\1171370-1171430_0.50degree"
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
-CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\G3-01_MoTiCu_ex30M\G3-01_MoTiCu_ex30M-th0.5.ini"
+CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\maxs\analysis\circular_average_batch_conversion\G1-01_NbAlSc_ex30M\G1-01_NbAlSc_ex30M-th0.50.ini"
 
 # Step 2: Confirm your config file
 CONFIG = configparser.ConfigParser()
@@ -44,6 +44,8 @@ else:
     print("-----------------")
 
 FILE_TYPE = '.dat'
+FILENAME_KEYWORD = 'th'     # b37-01_NbAlSc_ex30M_Tc110.03_345.1s_x-0.001_"th"0.250_5.00s_1171982_maxs.dat
+FILENAME_KEYWORD_OFFSET = 6     # "th"0.250
 ANGLE_RANGE = eval(CONFIG['samples']['angle_range'])
 SAMPLE_LIST = eval(CONFIG['samples']['sample_list'])
 SAXS_COLUMN_NAME = ['#', 'qr', 'I']                                                                  # May be updated
@@ -121,7 +123,7 @@ def sorted_data(files, mode=ANGLE_RANGE):
             data_dict['q_list'][index] = dataframe[:, 0]
             data_dict['I_list'][index] = dataframe[:, 1]
             if OUTPUT_FOR_JADE:
-                    out_file(data_dict['q_list'][index], data_dict['I_list'][index], f'Converted_{scattering_data.name}')
+                    out_file(data_dict['q_list'][index], data_dict['I_list'][index], f'C_{scattering_data.name}')
         elif mode == 'small':
             dataframe = pd.read_table(scattering_data, sep="\s+",
                                       usecols=SAXS_COLUMN_NAME) \
@@ -153,7 +155,7 @@ def background_subtraction(q_and_I_list, degree=3):
         y_corrected = y - base_line  # subtract baseline from y-values
         q_and_I_list['background_subtraction_list'][index] = y_corrected
         if OUTPUT_FOR_JADE:
-                out_file(x, y_corrected, f'Converted_bgsub_{filename}')
+                out_file(x, y_corrected, f'C_bgsub_{filename}')
 
 
 def giwaxs_plot(q_and_I_list, mode='raw'):
@@ -221,7 +223,7 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
         plt.xlim(XRANGE[0], XRANGE[1])
     if len(YRANGE) != 0:
         plt.ylim(YRANGE[0], YRANGE[1])
-    plt.legend(loc='upper left', framealpha=1, frameon=False, fontsize=12)
+    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=12)
     plt.title(title, fontsize=18, pad=15)
     plt.tight_layout()
     if IF_SAVE:
@@ -480,20 +482,20 @@ def out_file(q, intensity, filename):
     :return: None
     """
     print('=================================================================================')
-    short_filename = filename[:filename.find('_pos1')] + '-xposi' + filename[filename.find("_x") + 2:filename.find(
-        "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6] + '.xy'
+    # short_filename = filename[:filename.find('_pos1')] + '-xposi' + filename[filename.find("_x") + 2:filename.find(
+    #     "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6] + '.xy'
+    short_filename = filename[:filename.find(FILENAME_KEYWORD)+FILENAME_KEYWORD_OFFSET] + '.xy'   # <--- Modify this line to change the output filename
     print(f'Converting CMS GIWAXS data to --> {short_filename}')
-    # filename = os.path.join(OUTPUT_PATH+'/', short_filename + '.xy')
     output_filename = OUTPUT_PATH / short_filename
     with open(output_filename, 'w') as out:
         out.write('q I(q)\n')
         for i in range(len(q)):
             out.write(str('{:.5f}'.format(q[i]))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
 
-    short_filename = filename[:filename.find('_pos1')] + '-xposi' + filename[filename.find("_x") + 2:filename.find(
-        "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6] + 'tth' + '.xy'
-    print(f'Converting CMS GIWAXS data to --> {short_filename}_tth')
-    # filename = os.path.join(OUTPUT_PATH+'/', short_filename + 'tth' + '.xy')
+    # short_filename = filename[:filename.find('_pos1')] + '-xposi' + filename[filename.find("_x") + 2:filename.find(
+    #     "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6] + 'tth' + '.xy'
+    short_filename = filename[:filename.find(FILENAME_KEYWORD)+FILENAME_KEYWORD_OFFSET] + '_tth' + '.xy'   # <--- Modify this line also
+    print(f'Converting CMS GIWAXS data to --> {short_filename}')
     output_filename = OUTPUT_PATH / short_filename
     with open(output_filename, 'w') as out:
         out.write('tth I(tth)\n')
@@ -501,6 +503,7 @@ def out_file(q, intensity, filename):
             tth = 2 * np.arcsin(q[i] * 1.5406 / 4 / np.pi) * 180 / np.pi
             out.write(str('{:.5f}'.format(tth))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
     print('=================================================================================')
+
 
 if __name__ == '__main__':
     main()
