@@ -3,11 +3,11 @@ Data Analysis Tools for X-ray Spectroscopy
 
 ## Table of Contents
 
-- [Larch XAS.py](#larch-XASpy)
-- [CFNXRD2Jade.py](#CFNXRD2Jadepy)
-- [plot xrd SSID insitu.py](#plot-xrd-SSID-insitupy)
-- [CMS GIWAXS and GISAXS.py](#CMS-GIWAXS-and-GISAXSpy)
-- [CMS SAXS data export](#CMS-SAXS-data-export)
+- [Larch XAS.py](#larch-xaspy)
+- [CFNXRD2Jade.py](#cfnxrd2jadepy)
+- [plot xrd SSID insitu.py](#plot-xrd-ssid-insitupy)
+- [CMS GIWAXS and GISAXS.py](#cms-giwaxs-and-gisaxspy)
+- [CMS SAXS data export](#cms-saxs-data-export)
 
 ## Larch XAS.py
 > Citation: M. Newville, Larch: An Analysis Package For XAFS And Related Spectroscopies. Journal of Physics: Conference Series, 430:012007 (2013).
@@ -111,9 +111,10 @@ CONFIG_FILE = r"D:\Research data\SSID\202205\20220509 20210221 BMM\b28_Sc_pure_c
 The key parameters:
 ```
 sample_list = [0, 1]
-standard_list = [1]
-sample_label = ['Pure Sc']
+standard_list = [0]
+sample_label = ['Pure Sc', 'NbAlSc']
 energy_range = (4425, 4625)
+if_save = True      # True or False to save the plot
 output_filename = 'Sc-b33-NbAlSc-SP'
 ```
 ## CFNXRD2Jade.py
@@ -190,12 +191,12 @@ CONFIG_FILE = r"D:\Research data\SSID\202302\20230228 CMS b33 SP\saxs\b33-NbAlSc
 
 The key paramteres:
 ```
-sample_list = [0]
+sample_list = [0, 1]
 angle_range = 'wide' or 'small'
-sample_label = ['Pristine']
-output_filename = 'b33-NbAl and Sc-SP-th0.2'
+sample_label = ['Pristine', 'Heated']
 output_for_jade = False or True    # Converted file for Jade reading
-if_save = True or False
+output_filename = 'b33-NbAl and Sc-SP-th0.2'
+if_save = True or False     # Save the plot
 ```
 
 ## CMS SAXS data export
