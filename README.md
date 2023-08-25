@@ -200,7 +200,7 @@ if_save = True or False     # Save the plot
 ```
 
 ## CMS SAXS data export
-* Download **SciAnalysis** folder
+* Download [**SciAnalysis**](https://github.com/CFN-softbio/SciAnalysis) folder
 * Open saxs\analysis\runXS.py
 * Paste the directory of the **SciAnalysis** folder
 ```
