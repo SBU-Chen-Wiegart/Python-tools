@@ -51,7 +51,7 @@ SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol,
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\SSID\202305\20230525 BMM SSID wo Si\Output_files\b36_Nb.ini"   # <-------------------- .ini setting for plotting
+CONFIG_FILE = r"D:\Research data\SSID\202305\20230525 BMM SSID wo Si\Output_files\b36_Nb for time request.ini"   # <-------------------- .ini setting for plotting
 
 config = configparser.ConfigParser()
 if Path(CONFIG_FILE).is_file():
@@ -78,6 +78,7 @@ FRAMELINEWIDTH = eval(config['format']['framelinewidth']) if is_ini else 2
 COLOR_INCREMENT = eval(config['format']['color_increment']) if is_ini else 0
 OFFSET = eval(config['format']['offset']) if is_ini else 0                                                # Value you want to add to an y offset for each curve.
 ENERGY_RANGE = eval(config['format']['energy_range']) if is_ini else ()                                   # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
+Y_RANGE = eval(config['format']['y_range']) if is_ini else ()                                             # () for default
 ENERGY_INTERVAL = eval(config['format']['energy_interval']) if is_ini else 0                              # This parameter works only when you set a ENERGY_RANGE
 IF_SAVE = eval(config['format']['if_save']) if is_ini else True
 OUTPUT_FILENAME = eval(config['format']['output_filename']) if is_ini else "Default"
@@ -181,6 +182,8 @@ def plot_xas(files):
     else:
         ax1.set_xlim(ENERGY_RANGE)
         plt.xticks(np.arange(ENERGY_RANGE[0], ENERGY_RANGE[1], step=ENERGY_INTERVAL), fontsize=14)
+    if Y_RANGE != ():
+        ax1.set_ylim(Y_RANGE)
     plt.title(OUTPUT_FILENAME, fontsize=20, pad=15)
     x_label = r'$\mathregular{Energy\ (eV)}$'
     y_label = r'$\mathregular{Normalized\ x\mu(E)}$'
