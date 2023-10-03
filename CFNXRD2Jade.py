@@ -13,24 +13,25 @@ from pathlib import Path
 import palettable.colorbrewer.diverging as pld
 
 # Step 1: Paste your directory
-INPUT_PATH = r"D:\Research data\SSID\202303\20230321 XRD Si contamination and MoTiCu"   # <--- Give the folder directory you want to explore
+INPUT_PATH = r"D:\Research data\SSID\202309\20230928 XRD b42 new sputtering"   # <--- Give the folder directory you want to explore
 
 # Step 2: Set up your plotting parameters
 # CONSTANT
 FILE_TYPE = '.xy'
-PLOT_LIST = [5, 3]                      # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
-SAMPLE_LABEL = ['On Sapphire', 'On Fused Silica']                   # [] for default or add a specific name list
+PLOT_LIST = [2, 3, 4]                      # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
+SAMPLE_LABEL = ['Pristine', 'b900C30M', 'G900C30M']                   # [] for default or add a specific name list
 OUTPUT = False                      # "True" if you want to save the converted file
 Y_RANGE = (-100, 500)               # Increment of ylim
-PLOT_OFFSET = 500                   # Value you want to add to an offset for each curve.
-FRAMELINEWIDTH = 2
+PLOT_OFFSET = 800                   # Value you want to add to an offset for each curve.
+FRAMELINEWIDTH = 1.5
 LINEWIDTH = 2
-IF_SAVE = True                     # "True" if you want to save the plots
+IF_SAVE = False                    # "True" if you want to save the plots  # <---------------------------------- Check
 IF_LEGEND = True                    # "True" if you want to show the legend
 LEGEND_LOCATION = 'upper left'
 PALETTE = pld.Spectral_4_r          # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap         # .mpl_colormap attribute is a continuous, interpolated map
-OUTPUT_FILENAME = 'b34 - MoTiCu - 800C30M' # <------------------------------------------------------- Enter your figure title and file name
+FILENAME_LENGTH = 20                # The length of the filename you want to show in the legend
+OUTPUT_FILENAME = 'b42-G01-ScNbAl'  # <----------------------------- Enter your figure title and file name
 
 # --------------------Good luck for your data conversion!--------------------
 
@@ -79,11 +80,12 @@ def out_file(tth, intensity, filename):
     """
     print('=================================================================================')
     print(f'Converting CFN XRD data to --> {filename}')
-    filename = os.path.join(INPUT_PATH+'/', filename)
-    with open(filename, 'w') as out:
+    input_path = Path(INPUT_PATH)
+    filename = input_path / filename
+    with filename.open(mode='w') as out:
         out.write('tth intensity\n')
-        for i in range(len(tth)):
-            out.write(str('{:.2f}'.format(tth[i]))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
+        for angle, signal in zip(tth, intensity):
+            out.write(f"{angle:.2f} {signal:.5f}\n")    # ChatGPT
     print('=================================================================================')
     print(' ')
 
@@ -109,12 +111,12 @@ def intensity_plot(dictionary_of_I_and_q):
 
         # Give specific labels
         if len(SAMPLE_LABEL) == 0:
-            sample_name = dictionary_of_I_and_q['filename_list'][i][:20]
+            sample_name = dictionary_of_I_and_q['filename_list'][i][:FILENAME_LENGTH]
         else:
             sample_name = SAMPLE_LABEL[PLOT_LIST.index(i)]
 
         print(i, dictionary_of_I_and_q['filename_list'][i])
-        plt.plot(x, y, linewidth=LINEWIDTH ,color=CMAP(color_idx[plot_sequence]), label=f'{sample_name}')
+        plt.plot(x, y, linewidth=LINEWIDTH, color=CMAP(color_idx[plot_sequence]), label=f'{sample_name}')
         plot_sequence += 1
 
     # Plotting format
