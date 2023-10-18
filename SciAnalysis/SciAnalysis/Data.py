@@ -2173,7 +2173,7 @@ class Data2D(object):
     
     def _plot_interact(self):
         
-        self.fig.canvas.set_window_title('SciAnalysis')
+        self.fig.canvas.manager.set_window_title('SciAnalysis')     # <----------------------------- Cheng-Chu Modified
         #plt.get_current_fig_manager().toolbar.pan()
         # self.fig.canvas.toolbar.pan()     # <----------------------------------------------------- Cheng-Chu Modified
         self.fig.canvas.mpl_connect('scroll_event', self._scroll_event )
