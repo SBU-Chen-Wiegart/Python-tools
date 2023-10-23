@@ -26,9 +26,9 @@ import peakutils
 # CONFIG_FILE = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog\Plot\CMS_plot_config_gisaxs_b28_9001100C60M_th0.2_PeakEnhanced.ini"
 
 # GIWAXS
-INPUT_PATH = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\maxs\analysis\circular_average_batch_conversion\G1-01_NbAlSc_ex30M\1171370-1171430_0.50degree"
+INPUT_PATH = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\b37-01_NbAlSc_ex30M_1171982-1172042_0.25_qz=0.055_dq=0.008_fit"
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
-CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\maxs\analysis\circular_average_batch_conversion\G1-01_NbAlSc_ex30M\G1-01_NbAlSc_ex30M-th0.50.ini"
+CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\b37-01_NbAlSc_ex30M_1171982-1172042_0.25_qz=0.055_dq=0.008_fit\Plot\b37-01_NbAlSc_ex30M_CMS_GISAXS.ini"
 
 # Step 2: Confirm your config file
 CONFIG = configparser.ConfigParser()
@@ -76,7 +76,7 @@ def main():
     # print('-----------------------------------------')
     files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')  # Call Path again to grab the file
 
-    if not OUTPUT_PATH.exists():
+    if not OUTPUT_PATH.exists() and OUTPUT_FOR_JADE:
         OUTPUT_PATH.mkdir()    # Create an output folder to save all generated data/files
 
     if ANGLE_RANGE == 'wide':
@@ -312,14 +312,6 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
     for direction in spineline:
         ax.spines[direction].set_linewidth(3)
 
-    # Plotting format
-    if len(XRANGE) != 0:
-        xrange == XRANGE
-        plt.xlim(xrange)
-    if len(YRANGE) != 0:
-        yrange == YRANGE
-        plt.ylim(yrange)
-
     if mode == 'Guinier':
         plt.xlabel('$\mathregular{q_r^2 (\AA^{-1})}$', fontsize=20)
         plt.ylabel('Log[I(q)]', fontsize=20, labelpad=10)
@@ -341,9 +333,17 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
         plt.xscale('log')
         plt.yscale('log')
     else:
-        plt.xlabel('q_r ($\mathregular{\AA}^{-1}$)', fontsize=20)
+        plt.xlabel('$\mathregular{q_r}$ ($\mathregular{\AA}^{-1}$)', fontsize=20)
         plt.ylabel('I(q)', fontsize=20, labelpad=10)
         plt.yscale('log')
+
+    # Plotting format
+    if len(XRANGE) != 0:
+        xrange == XRANGE
+        plt.xlim(xrange)
+    if len(YRANGE) != 0:
+        yrange == YRANGE
+        plt.ylim(yrange)
 
     plt.xticks(fontsize=20)
     # ax.get_xaxis().set_tick_params(which='minor', width=3)
