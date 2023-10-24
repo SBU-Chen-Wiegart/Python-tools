@@ -28,7 +28,7 @@ import peakutils
 # GIWAXS
 INPUT_PATH = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\b37-01_NbAlSc_ex30M_1171982-1172042_0.25_qz=0.055_dq=0.008_fit"
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
-CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\b37-01_NbAlSc_ex30M_1171982-1172042_0.25_qz=0.055_dq=0.008_fit\Plot\b37-01_NbAlSc_ex30M_CMS_GISAXS.ini"
+CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\b37-01_NbAlSc_ex30M_1171982-1172042_0.25_qz=0.055_dq=0.008_fit\Plot\b37-01_NbAlSc_ex30M_CMS_GISAXS_517.ini"
 
 # Step 2: Confirm your config file
 CONFIG = configparser.ConfigParser()
@@ -339,11 +339,11 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
 
     # Plotting format
     if len(XRANGE) != 0:
-        xrange == XRANGE
-        plt.xlim(xrange)
+        # xrange == XRANGE
+        plt.xlim(XRANGE)
     if len(YRANGE) != 0:
-        yrange == YRANGE
-        plt.ylim(yrange)
+        # yrange == YRANGE
+        plt.ylim(YRANGE)
 
     plt.xticks(fontsize=20)
     # ax.get_xaxis().set_tick_params(which='minor', width=3)
