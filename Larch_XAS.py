@@ -35,15 +35,15 @@ TRANSMISSION_MODE instructions:
 Otherwise True or False to decide what type of data you want to export (transmission or fluorescence scans)
 True for transmission scans; False for fluorescence scans
 """
-FILE_TYPE = '.txt'   # <------------------------------------------------------------------------------------- data type
+FILE_TYPE = '.prj'   # <------------------------------------------------------------------------------------- data type
 TRANSMISSION_MODE = 'Auto'
-INPUT_PATH = r'D:\Research data\SSID\202305\20230525 BMM SSID wo Si\Output_files'    # <----------------------- Data folder input
+INPUT_PATH = r'D:\Research data\SSID\202310\20231029 b3x4xGx BMM\Sc\Square'    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
 # Merged Constant
-SKIP_SCANS = ['MnO2_45_16C_Charge_Mn_001']     # [] if scans are good or just add scans you want to exclude
+SKIP_SCANS = ['Nb_b47_01_NbAlSc_SP_Pristine_003']     # [] if scans are good or just add scans you want to exclude
 IF_NOR = False   # Do normalization for fluorescence scans
-ADD_DEV = False     # Add plus and minus standard deviation lines for fluorescence scans
+ADD_DEV = False     # Add plus and minus standard deviation lines for fluorescence scansㄦ
 SHOW_DATA_INFORMATION = False   # List athena parameters, such as atomic symbol, edge, label, etc.
 
 # Plot Constant for .txt
@@ -562,6 +562,9 @@ def calibrate_energy(files):
                 # print('Energy after:', data.energy[0])
                 print('Energy E0 after:', find_e0(data.energy, mu=data.mu, group=data))
                 reference_checklist.append(reference_name)
+                if energy_shift > 10:
+                    print('-'*50 + '> ' + 'Energy shift is too large, please check the reference. '
+                                          'Otherwise, please use Created_group.prj to do the calibration manually.')
                 print('')
 
         # Replace special characters because they might cause error
