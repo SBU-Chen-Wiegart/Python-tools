@@ -13,25 +13,33 @@ from pathlib import Path
 import palettable.colorbrewer.diverging as pld
 
 # Step 1: Paste your directory
-INPUT_PATH = r"D:\Research data\SSID\202309\20230928 XRD b42 new sputtering"   # <--- Give the folder directory you want to explore
+INPUT_PATH = r"D:\Research data\SSID\202311\20231114 b4567 comparison"   # <--- Give the folder directory you want to explore
+OUTPUT_PATH = Path(INPUT_PATH) / 'Converted'  # <--- Give the folder directory you want to save the converted data
 
 # Step 2: Set up your plotting parameters
 # CONSTANT
 FILE_TYPE = '.xy'
-PLOT_LIST = [2, 3, 4]                      # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
-SAMPLE_LABEL = ['Pristine', 'b900C30M', 'G900C30M']                   # [] for default or add a specific name list
-OUTPUT = False                      # "True" if you want to save the converted file
+PLOT_LIST = [3, 0, 4, 1, 5, 2, 6, 7]                      # [] for default or [1, 7, 5, 3] index list for the index sequence you desire
+SAMPLE_LABEL = ['b44-01_VTiCu_SP_Pristine',
+                'b44-02_VTiCu_SP_750C30M',
+                'b45-01_NbAlCu_SP_Pristine',
+                'b45-02_NbAlCu_SP_500C30M',
+                'b46-01_MoTiCu_SP_Pristine',
+                'b46-02_MoTiCu_SP_750C30M',
+                'b47-01_NbAlSc_SP_Pristine',
+                'b47-02_NbAlSc_SP_900C30M']                   # [] for default or add a specific name list
+OUTPUT = False                      # "True" if you want to save the converted file  # <-------------------------- Check
 Y_RANGE = (-100, 500)               # Increment of ylim
 PLOT_OFFSET = 800                   # Value you want to add to an offset for each curve.
 FRAMELINEWIDTH = 1.5
 LINEWIDTH = 2
-IF_SAVE = False                    # "True" if you want to save the plots  # <---------------------------------- Check
+IF_SAVE = True                    # "True" if you want to save the plots  # <----------------------------------- Check
 IF_LEGEND = True                    # "True" if you want to show the legend
 LEGEND_LOCATION = 'upper left'
 PALETTE = pld.Spectral_4_r          # _r if you want to reverse the color sequence
 CMAP = PALETTE.mpl_colormap         # .mpl_colormap attribute is a continuous, interpolated map
 FILENAME_LENGTH = 20                # The length of the filename you want to show in the legend
-OUTPUT_FILENAME = 'b42-G01-ScNbAl'  # <----------------------------- Enter your figure title and file name
+OUTPUT_FILENAME = 'b4456'  # <----------------------------- Enter your figure title and file name
 
 # --------------------Good luck for your data conversion!--------------------
 
@@ -78,10 +86,13 @@ def out_file(tth, intensity, filename):
     :param filename: List, a list stores filenames
     :return: None
     """
+    if not OUTPUT_PATH.exists():
+        OUTPUT_PATH.mkdir()    # Create an output folder to save all generated data/files
+
     print('=================================================================================')
     print(f'Converting CFN XRD data to --> {filename}')
-    input_path = Path(INPUT_PATH)
-    filename = input_path / filename
+    # input_path = Path(INPUT_PATH)
+    filename = OUTPUT_PATH / filename
     with filename.open(mode='w') as out:
         out.write('tth intensity\n')
         for angle, signal in zip(tth, intensity):
@@ -143,8 +154,10 @@ def intensity_plot(dictionary_of_I_and_q):
     plt.title(OUTPUT_FILENAME, fontsize=20, pad=10)
     plt.tight_layout()
     if IF_SAVE:
+        if not OUTPUT_PATH.exists():
+            OUTPUT_PATH.mkdir()    # Create an output folder to save all generated data/files
         output_filename = check_filename_repetition(OUTPUT_FILENAME)
-        plt.savefig("{}/{}.png".format(Path(INPUT_PATH), output_filename), dpi=300, transparent=False)
+        plt.savefig("{}/{}.png".format(Path(OUTPUT_PATH), output_filename), dpi=300, transparent=False)
     plt.show()
 
 
