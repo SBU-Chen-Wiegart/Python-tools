@@ -22,13 +22,14 @@ import peakutils
 
 # Step 1: Give your data directory
 # GISAXS
-# INPUT_PATH = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog"
-# CONFIG_FILE = r"D:\Research data\SSID\202210\20221003 CMS b32\saxs\analysis\qz=0.07_dq=0.02_ylog\Plot\CMS_plot_config_gisaxs_b28_9001100C60M_th0.2_PeakEnhanced.ini"
+# INPUT_PATH = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\G1-01_NbAlSc_ex30M_1171309-1171369_0.25_qz=0.055_dq=0.008_fit"
+# CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\G1-01_NbAlSc_ex30M_1171309-1171369_0.25_qz=0.055_dq=0.008_fit\Plot\G1-01_NbAlSc_ex30M_CMS_GISAXS_a_11-19.ini"
 
 # GIWAXS
-INPUT_PATH = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\b37-01_NbAlSc_ex30M_1171982-1172042_0.25_qz=0.055_dq=0.008_fit"
+INPUT_PATH = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\waxs\analysis\AfterDioptas_MoTiCu"
+CONFIG_FILE = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\waxs\analysis\AfterDioptas_MoTiCu\STb46-05_MoTiCu\STb46-05_MoTiCu_PTAex30M_th0.5_21-25.ini"
+
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
-CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\b37-01_NbAlSc_ex30M_1171982-1172042_0.25_qz=0.055_dq=0.008_fit\Plot\b37-01_NbAlSc_ex30M_CMS_GISAXS_517.ini"
 
 # Step 2: Confirm your config file
 CONFIG = configparser.ConfigParser()
@@ -43,14 +44,17 @@ else:
     print("Manually input so please remove all eval commands if error occurs or file is not found")
     print("-----------------")
 
-FILE_TYPE = '.dat'
+FILE_TYPE = '.xy'  # <------------------- Check your file type
 FILENAME_KEYWORD = 'th'     # b37-01_NbAlSc_ex30M_Tc110.03_345.1s_x-0.001_"th"0.250_5.00s_1171982_maxs.dat
 FILENAME_KEYWORD_OFFSET = 6     # "th"0.250
+LEGEND_HEAD_KEYWORD = 'PTA'
+LEGEND_TAIL_KEYWORD = '00_'
 ANGLE_RANGE = eval(CONFIG['samples']['angle_range'])
 SAMPLE_LIST = eval(CONFIG['samples']['sample_list'])
 SAXS_COLUMN_NAME = ['#', 'qr', 'I']                                                                  # May be updated
 WAXS_COLUMN_NAME = ['#', 'q', 'I(q)err', 'q']                                                        # May be updated, then update: data_dict['I_list'][index] = dataframe[:, 1]
-# WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)']                                                      # Before 2023                                                                                # 13.5 keV in nm
+# WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)']                                                      # Before 2023
+DIOPTAS_COLUMN_NAME = ['#', 'q_A^-1', 'I']
 FIGURE_SIZE = eval(CONFIG['format']['figure_size'])
 BATCH_NUMBER, COMPOSITION, CONDITION, INCIDENT_ANGLE = eval(CONFIG['legends']['sample_condition'])   # Whether you want to show them in the legend
 PALETTE = eval(CONFIG['format']['palette'])                                                          # pld.Spectral_4_r  # _r if you want to reverse the color sequence
@@ -118,8 +122,10 @@ def sorted_data(files, mode=ANGLE_RANGE):
             #     .to_numpy()  # '#' is q column and 'qerr' is I(q) column
             # ----------------------------------------------------
             dataframe = pd.read_table(scattering_data, sep="\s+",
-                                      usecols=WAXS_COLUMN_NAME)\
-                .to_numpy()  # '#' is q column and 'q' is I(q) column
+                                      usecols=WAXS_COLUMN_NAME).to_numpy() \
+                if FILE_TYPE == ".dat" \
+                else pd.read_table(scattering_data, sep="\s+", usecols=DIOPTAS_COLUMN_NAME, skiprows=22).to_numpy() \
+                # '#' is q column and 'q' is I(q) column
             data_dict['q_list'][index] = dataframe[:, 0]
             data_dict['I_list'][index] = dataframe[:, 1]
             if OUTPUT_FOR_JADE:
@@ -185,12 +191,16 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
         incident_angle = f"{filename[filename.find('th') + 2:filename.find('th') + 6]} degree" if INCIDENT_ANGLE else '..'
         if len(SAMPLE_LABEL) == 0:
             plot_label = f"{batch_number}/{composition}/{condition}/{incident_angle}"
+            plot_label = filename[filename.find(LEGEND_HEAD_KEYWORD):filename.find(LEGEND_TAIL_KEYWORD)] \
+                if LEGEND_HEAD_KEYWORD in filename else plot_label
         else:
             plot_label = SAMPLE_LABEL[SAMPLE_LIST.index(index)] if len(SAMPLE_LABEL) == len(SAMPLE_LIST) else filename
 
         # Title
-        if TITLE != 'Auto':
+        if TITLE != 'Auto' and TITLE != '':
             title = TITLE
+        elif TITLE == '':
+            title = PureWindowsPath(CONFIG_FILE).stem
         elif incident_angle == '..':
             title = f"{filename[filename.find('th') + 2:filename.find('th') + 6]} degree"
         else:
@@ -223,7 +233,7 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
         plt.xlim(XRANGE[0], XRANGE[1])
     if len(YRANGE) != 0:
         plt.ylim(YRANGE[0], YRANGE[1])
-    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=12)
+    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=12, reverse=False)
     plt.title(title, fontsize=18, pad=15)
     plt.tight_layout()
     if IF_SAVE:
@@ -233,7 +243,7 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
     plt.show()
 
 
-def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 120)):
+def gisaxs_plot(q_and_I_list, mode='Intensity', xrange=(0.004, 0.1), yrange=(0, 120)):
     fig, ax = plt.subplots(figsize=FIGURE_SIZE)
     title = TITLE
     y_max_lim = 0
@@ -261,8 +271,10 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
             plot_label = SAMPLE_LABEL[SAMPLE_LIST.index(index)]
 
         # Title
-        if TITLE != 'Auto':
+        if TITLE != 'Auto' and TITLE != '':
             title = TITLE
+        elif TITLE == '':
+            title = PureWindowsPath(CONFIG_FILE).stem
         elif incident_angle == '..':
             title = f"{filename[filename.find('th') + 2:filename.find('th') + 6]} degree"
         else:
@@ -322,7 +334,7 @@ def gisaxs_plot(q_and_I_list, mode='intensity', xrange=(0.004, 0.1), yrange=(0, 
         plt.ticklabel_format(axis="x", style="sci", scilimits=(0, 0))
         plt.xlim(xrange)
         plt.ylim(yrange)
-    elif mode == 'paper':
+    elif mode == 'Paper':
         plt.xlabel('$\mathregular{q_r}$ ($\mathregular{\AA}^{-1}$)', fontsize=20)
         plt.ylabel('I(q)', fontsize=20, labelpad=10)
         plt.xscale('log')
@@ -500,7 +512,7 @@ def out_file(q, intensity, filename):
     with open(output_filename, 'w') as out:
         out.write('tth I(tth)\n')
         for i in range(len(q)):
-            tth = 2 * np.arcsin(q[i] * 1.5406 / 4 / np.pi) * 180 / np.pi
+            tth = 2 * np.arcsin(q[i] * 1.5406 / 4 / np.pi) * 180 / np.pi    # 0.9184, 1.5406
             out.write(str('{:.5f}'.format(tth))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
     print('=================================================================================')
 
