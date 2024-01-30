@@ -142,7 +142,7 @@ class Data2DScattering(Data2D):
     def load_tiff(self, infile):
         
         img = PIL.Image.open(infile).convert('I') # 'I' : 32-bit integer pixels
-        self.data = ( np.copy( np.asarray(img) ) ).astype(np.float)
+        self.data = ( np.copy( np.asarray(img) ) ).astype(float) # Cheng-Chu Modify 2024/01/30
         del img
         
         
