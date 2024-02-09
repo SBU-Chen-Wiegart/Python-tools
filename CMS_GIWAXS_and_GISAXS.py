@@ -22,12 +22,12 @@ import peakutils
 
 # Step 1: Give your data directory
 # GISAXS
-# INPUT_PATH = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\G1-01_NbAlSc_ex30M_1171309-1171369_0.25_qz=0.055_dq=0.008_fit"
-# CONFIG_FILE = r"D:\Research data\SSID\202308\20230803 CMS PTA\KChen-Wiegart2\saxs\analysis\G1-01_NbAlSc_ex30M_1171309-1171369_0.25_qz=0.055_dq=0.008_fit\Plot\G1-01_NbAlSc_ex30M_CMS_GISAXS_a_11-19.ini"
+INPUT_PATH = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\saxs\analysis\STb47-05_NbAlSc_th0.1_0.055_0.008"
+CONFIG_FILE = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\saxs\analysis\STb47-05_NbAlSc_th0.1_0.055_0.008\Plot\STb47-05_NbAlSc_0-6.ini"
 
 # GIWAXS
-INPUT_PATH = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\waxs\analysis\AfterDioptas_MoTiCu"
-CONFIG_FILE = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\waxs\analysis\AfterDioptas_MoTiCu\STb46-05_MoTiCu\STb46-05_MoTiCu_PTAex30M_th0.5_21-25.ini"
+# INPUT_PATH = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\waxs\analysis\AfterDioptas_MoTiCu"
+# CONFIG_FILE = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\waxs\analysis\AfterDioptas_MoTiCu\STb46-05_MoTiCu\STb46-05_MoTiCu_PTAex30M_th0.5_21-25.ini"
 
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
@@ -44,7 +44,7 @@ else:
     print("Manually input so please remove all eval commands if error occurs or file is not found")
     print("-----------------")
 
-FILE_TYPE = '.xy'  # <------------------- Check your file type
+FILE_TYPE = '.dat'  # <------------------- Check your file type
 FILENAME_KEYWORD = 'th'     # b37-01_NbAlSc_ex30M_Tc110.03_345.1s_x-0.001_"th"0.250_5.00s_1171982_maxs.dat
 FILENAME_KEYWORD_OFFSET = 6     # "th"0.250
 LEGEND_HEAD_KEYWORD = 'PTA'
@@ -267,6 +267,8 @@ def gisaxs_plot(q_and_I_list, mode='Intensity', xrange=(0.004, 0.1), yrange=(0, 
         incident_angle = f"{filename[filename.find('th') + 2:filename.find('th') + 6]} degree" if INCIDENT_ANGLE else '..'
         if len(SAMPLE_LABEL) == 0:
             plot_label = f"{batch_number}/{composition}/{condition}/{incident_angle}"
+            plot_label = filename[filename.find(LEGEND_HEAD_KEYWORD):filename.find(LEGEND_TAIL_KEYWORD)] \
+                if LEGEND_HEAD_KEYWORD in filename else plot_label
         else:
             plot_label = SAMPLE_LABEL[SAMPLE_LIST.index(index)]
 
@@ -363,7 +365,7 @@ def gisaxs_plot(q_and_I_list, mode='Intensity', xrange=(0.004, 0.1), yrange=(0, 
     # plt.yticks([])  # Disable ticks
     ax.tick_params(which='major', length=8, width=3)
     ax.tick_params(which='minor', length=5, width=3)
-    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=18)
+    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=18, reverse=True)
     plt.title(title, fontsize=18, pad=15)
     plt.tight_layout()
     if IF_SAVE:
