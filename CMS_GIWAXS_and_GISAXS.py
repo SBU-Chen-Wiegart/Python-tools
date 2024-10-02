@@ -19,36 +19,45 @@ import os
 import configparser
 import palettable as pltt
 import peakutils
+import matplotlib
+print("Before, Backend used by matplotlib is: ", matplotlib.get_backend())
+matplotlib.rcParams['backend'] = 'wxAgg'
+print("After, Backend used by matplotlib is: ", matplotlib.get_backend())
 
 # Step 1: Give your data directory
 # GISAXS
-INPUT_PATH = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\saxs\analysis\STb47-05_NbAlSc_th0.1_0.055_0.008"
-CONFIG_FILE = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\saxs\analysis\STb47-05_NbAlSc_th0.1_0.055_0.008\Plot\STb47-05_NbAlSc_0-6.ini"
+# INPUT_PATH = r"D:\Research data\SSID\202403\20240311 CMS b45 NbAlCu\saxs\analysis\b45-05_NbAlCu__0.055_0.008"
+# CONFIG_FILE = r"D:\Research data\SSID\202403\20240311 CMS b45 NbAlCu\saxs\analysis\b45-05_NbAlCu__0.055_0.008\Plot\b45-05_NbAlCu_th025_17613.ini"
 
 # GIWAXS
-# INPUT_PATH = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\waxs\analysis\AfterDioptas_MoTiCu"
-# CONFIG_FILE = r"D:\Research data\SSID\202312\20231204 CMS stripe during study time\waxs\analysis\AfterDioptas_MoTiCu\STb46-05_MoTiCu\STb46-05_MoTiCu_PTAex30M_th0.5_21-25.ini"
+INPUT_PATH = r"D:\Research data\SSID\202409\20240927 CMS b5455 sandwich test\waxs\analysis\circular_average"
+CONFIG_FILE = r"D:\Research data\SSID\202409\20240927 CMS b5455 sandwich test\waxs\analysis\b54-01 ScVMnSc\b54-01_ScVMnSc_EXPTA30M.ini"
 
-OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
+# OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
+# Save with config file
+OUTPUT_PATH = Path(f'{PureWindowsPath(CONFIG_FILE).parent}\Output_files_{PureWindowsPath(CONFIG_FILE).stem}')
 
 # Step 2: Confirm your config file
 CONFIG = configparser.ConfigParser()
 
 if Path(CONFIG_FILE).is_file():
     CONFIG.read(CONFIG_FILE, encoding="utf8")
+    is_ini = True
     print("=================")
     print("Use .ini input")
     print("-----------------")
 else:
+    is_ini = False
     print("=================")
     print("Manually input so please remove all eval commands if error occurs or file is not found")
     print("-----------------")
 
-FILE_TYPE = '.dat'  # <------------------- Check your file type
+FILE_TYPE = '.dat'  # <------------------- Check your file type ### Archive
+PATTERN = eval(CONFIG['samples']['pattern'])
 FILENAME_KEYWORD = 'th'     # b37-01_NbAlSc_ex30M_Tc110.03_345.1s_x-0.001_"th"0.250_5.00s_1171982_maxs.dat
 FILENAME_KEYWORD_OFFSET = 6     # "th"0.250
-LEGEND_HEAD_KEYWORD = 'PTA'
-LEGEND_TAIL_KEYWORD = '00_'
+LEGEND_HEAD_KEYWORD = 'th'
+LEGEND_TAIL_KEYWORD = '0_10'
 ANGLE_RANGE = eval(CONFIG['samples']['angle_range'])
 SAMPLE_LIST = eval(CONFIG['samples']['sample_list'])
 SAXS_COLUMN_NAME = ['#', 'qr', 'I']                                                                  # May be updated
@@ -74,11 +83,13 @@ SUB_DEGREE = eval(CONFIG['data_processing']['bgsub_degree'])
 
 
 def main():
-    # files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
-    # for index, dat_file in enumerate(files):
-    #     print(index, dat_file.name)
-    # print('-----------------------------------------')
-    files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')  # Call Path again to grab the file
+    files = Path(INPUT_PATH).glob(f'*{PATTERN}')  # Call Path again to grab the file
+
+    if len(list(files)) == 0:
+        print("No files found, please check your input path or pattern")
+        return
+    else:
+        files = Path(INPUT_PATH).glob(f'*{PATTERN}')    # Call Path again to grab the file
 
     if not OUTPUT_PATH.exists() and OUTPUT_FOR_JADE:
         OUTPUT_PATH.mkdir()    # Create an output folder to save all generated data/files
@@ -123,7 +134,7 @@ def sorted_data(files, mode=ANGLE_RANGE):
             # ----------------------------------------------------
             dataframe = pd.read_table(scattering_data, sep="\s+",
                                       usecols=WAXS_COLUMN_NAME).to_numpy() \
-                if FILE_TYPE == ".dat" \
+                if scattering_data.suffix == ".dat" \
                 else pd.read_table(scattering_data, sep="\s+", usecols=DIOPTAS_COLUMN_NAME, skiprows=22).to_numpy() \
                 # '#' is q column and 'q' is I(q) column
             data_dict['q_list'][index] = dataframe[:, 0]
@@ -218,6 +229,8 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
         if y.min() < y_min_lim:
             y_min_lim = y.min()
 
+    print(f'Total number of curves: {increment}')
+
     # Frame linewidth
     spineline = ['left', 'right', 'top', 'bottom']
     for direction in spineline:
@@ -233,8 +246,9 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
         plt.xlim(XRANGE[0], XRANGE[1])
     if len(YRANGE) != 0:
         plt.ylim(YRANGE[0], YRANGE[1])
-    plt.legend(loc=LEGEND_LOCATION, framealpha=1, frameon=False, fontsize=12, reverse=False)
+    plt.legend(bbox_to_anchor=(1.05, 1.0), loc=LEGEND_LOCATION, framealpha=1, frameon=True, fontsize=12, reverse=True)
     plt.title(title, fontsize=18, pad=15)
+    # ax.set_aspect('auto')    # Aspect ratio
     plt.tight_layout()
     if IF_SAVE:
         config_file_location = PureWindowsPath(CONFIG_FILE).parent
@@ -253,6 +267,7 @@ def gisaxs_plot(q_and_I_list, mode='Intensity', xrange=(0.004, 0.1), yrange=(0, 
     print('\n=============================================')
     print('Plot:')
     print('---------------------------------------------')
+
     for index in SAMPLE_LIST:
         x = q_and_I_list['q_list'][index]
         y = q_and_I_list['I_list'][index]
@@ -320,6 +335,8 @@ def gisaxs_plot(q_and_I_list, mode='Intensity', xrange=(0.004, 0.1), yrange=(0, 
             y_max_lim = y.max()
         if y.min() < y_min_lim:
             y_min_lim = y.min()
+
+    print(f'Total number of curves: {increment}')
 
     # Frame linewidth
     spineline = ['left', 'right', 'top', 'bottom']
