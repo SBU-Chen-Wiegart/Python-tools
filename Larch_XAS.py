@@ -35,23 +35,23 @@ TRANSMISSION_MODE instructions:
 Otherwise True or False to decide what type of data you want to export (transmission or fluorescence scans)
 True for transmission scans; False for fluorescence scans
 """
-FILE_TYPE = '.txt'   # <------------------------------------------------------------------------------------- data type
+FILE_TYPE = ''   # <------------------------------------------------------------------------------------- data type
 TRANSMISSION_MODE = 'Auto'
-INPUT_PATH = r"D:\Research data\SSID\202310\20231029 b3x4xGx BMM\Cu\Stripe\Output_files"    # <----------------------- Data folder input
+INPUT_PATH = r"D:\Research data\SSID\202411\20241104 BMM AE\Ni-b59-03-CrCuNiCr-AE"    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
 # Merged Constant
 SKIP_SCANS = ['Nb_b47_01_NbAlSc_SP_Pristine_003']  # [] if scans are good or just add scans you want to exclude
 IF_NOR = False                                     # Do normalization for fluorescence scans
 ADD_DEV = False                                    # Add plus and minus standard deviation lines for fluorescence scans
-SHOW_DATA_INFORMATION = False                      # List athena parameters, such as atomic symbol, edge, label, etc.
+SHOW_DATA_INFORMATION = True                      # List athena parameters, such as atomic symbol, edge, label, etc.
 
 # Plot Constant for .txt
 """
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\SSID\202310\20231029 b3x4xGx BMM\Cu\Stripe\Output_files\Cu_G4-01_VtiCu_PTA30M.ini"   # <-------------------- .ini setting for plotting
+CONFIG_FILE = r"D:\Research data\SSID\202406\20240611 BMM b5253\Nb\b52_ScNbAlSc\Output_files\Nb-b52-01-ScNbAlSc-PTA.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
 
 config = configparser.ConfigParser()
 if Path(CONFIG_FILE).is_file():
@@ -82,7 +82,8 @@ Y_RANGE = eval(config['format']['y_range']) if is_ini else ()                   
 ENERGY_INTERVAL = eval(config['format']['energy_interval']) if is_ini else 0                              # This parameter works only when you set a ENERGY_RANGE
 IF_SAVE = eval(config['format']['if_save']) if is_ini else True                                           # Save the plot or not
 OUTPUT_FILENAME = eval(config['format']['output_filename']) if is_ini else "Default"
-NUM_COLUMN = 1                                                                                            # Number of columns in the legend
+NUM_COLUMN = 2
+DETECTOR_INDEX_HEAD, DETECTOR_INDEX_TAIL = 7, 14    # 2024 cycle 3 updated number of detectors from 4 to 7
 
 
 def main():
@@ -108,6 +109,9 @@ def main():
 
         # Create a group prj containing all sample data
         create_transmission_prj_group(new_merge_project)
+
+        delete_multiple_file_types(OUTPUT_PATH,
+                                   extensions=["*merged*", "*reference*"])
 
 
 def plot_xas(files):
@@ -188,7 +192,7 @@ def plot_xas(files):
         if OUTPUT_FILENAME != "" \
         else plt.title(PureWindowsPath(CONFIG_FILE).stem, fontsize=20, pad=15)
     x_label = r'$\mathregular{Energy\ (eV)}$'
-    y_label = r'$\mathregular{Normalized\ x\mu(E)}$'
+    y_label = r'$\mathregular{Normalized\ \mu(E)}$'     # XANES normalization doesn't have x
     # plt.yticks([])  # Disable ticks
     ax1.tick_params(width=FRAMELINEWIDTH)
     ax1.set_xlabel(x_label, fontsize=18)
@@ -301,7 +305,7 @@ def merge_scan(file_prj, new_merge_project):
         print('Xray edge:', xray_edge(merges.atsym, merges.edge)[0])
 
     # Replace '-' with '_' because '-' will cause error
-    scan_name = f'{first_scan_information.label[:-4]}_merged'.replace('-', '_').replace(' ', '_')
+    scan_name = f'{first_scan_information.label[:-4]}_merged'.replace('-', '_').replace(' ', '_').replace('.', 'p')
     new_merge_project.add_group(merges, scan_name)  # Add the merge into the new prj
 
     # Plotting format
@@ -354,7 +358,7 @@ def create_transmission_prj(files):
             if scanname[-3:] == 'dat':
                 space_index = scanname.find(' ', -11)
                 sample_name = scanname[:space_index].replace('-', '_').replace('(', '').replace(')', '').replace(' ',
-                                                                                                                 '_')
+                                                                                                                 '_').replace('.', 'p')
 
                 if f'{sample_name}_energy_mu' not in scan_dictionary:
                     scan_dictionary[f'{sample_name}_energy_mu'] = []
@@ -366,7 +370,7 @@ def create_transmission_prj(files):
                     scan_dictionary[f'{sample_name}_energy_mu'].append(np.log(scan.i0 / scan.it))   # <--- Transmission
 
             else:
-                sample_name = scanname[:-4].replace('-', '_').replace('(', '').replace(')', '').replace(' ', '_')
+                sample_name = scanname[:-4].replace('-', '_').replace('(', '').replace(')', '').replace(' ', '_').replace('.', 'p')
                 if f'{sample_name}_energy_mu' not in scan_dictionary:
                     scan_dictionary[f'{sample_name}_energy_mu'] = []
                     scan_dictionary[f'{sample_name}_energy_mu'].append(scan.energy)                   # <--- Energy
@@ -381,7 +385,7 @@ def create_transmission_prj(files):
                         else:
                             print('Detectors:')
                             fluorescence_total_counts = 0
-                            for if_index in range(7, 11):
+                            for if_index in range(DETECTOR_INDEX_HEAD, DETECTOR_INDEX_TAIL):   # 2024 cycle 3 updated number of detectors from 4 to 7
                                 fluorescence_detector = scan.array_labels[if_index]
                                 print(fluorescence_detector)
                                 fluorescence_counts = getattr(scan, fluorescence_detector)
@@ -395,7 +399,7 @@ def create_transmission_prj(files):
                         else:
                             print('Detectors:')
                             fluorescence_total_counts = 0
-                            for if_index in range(7, 11):
+                            for if_index in range(DETECTOR_INDEX_HEAD, DETECTOR_INDEX_TAIL):   # 2024 cycle 3 updated number of detectors from 4 to 7
                                 fluorescence_detector = scan.array_labels[if_index]
                                 print(fluorescence_detector)
                                 fluorescence_counts = getattr(scan, fluorescence_detector)
@@ -475,7 +479,7 @@ def create_transmission_prj_group(new_merge_project):
                 show_data_information(group)
 
             # Replace special characters because they might cause error
-            sample_name = f'{group.filename}'.replace('-', '_').replace('(', '').replace(')', '')
+            sample_name = f'{group.filename}'.replace('-', '_').replace('(', '').replace(')', '').replace('.', 'p')
             print(sample_name)
             new_merge_project.add_group(group, sample_name)
 
@@ -573,7 +577,7 @@ def calibrate_energy(files):
                 print('')
 
         # Replace special characters because they might cause error
-        filename = f'{data.label}'.replace('-', '_').replace('(', '').replace(')', '')
+        filename = f'{data.label}'.replace('-', '_').replace('(', '').replace(')', '').replace('.', 'p')
         new_merge_project.add_group(data, filename)
 
     new_merge_project.save(f'{OUTPUT_PATH}/Created_group_with_calibration.prj')
@@ -609,6 +613,25 @@ def check_filename_repetition(output_filename, directory):
         output_filename = output_filename + '_1'
         print(output_filename)
     return output_filename
+
+def delete_multiple_file_types(directory, extensions=["*.prj", "*.png"]):
+    """
+    Delete multiple file types from a directory.
+
+    :param directory: str or Path, the directory containing generated files
+    :param extensions: list of str, file extensions to filter files for deletion
+    """
+    output_path = Path(directory)
+    for ext in extensions:
+        files_to_delete = output_path.glob(ext)
+        for file in files_to_delete:
+            try:
+                file.unlink()
+                print(f"Deleted file: {file}")
+            except Exception as e:
+                print(f"Failed to delete {file}: {e}")
+
+
 
 
 if __name__ == '__main__':
