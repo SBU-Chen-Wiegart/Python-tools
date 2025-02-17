@@ -26,12 +26,12 @@ print("After, Backend used by matplotlib is: ", matplotlib.get_backend())
 
 # Step 1: Give your data directory
 # GISAXS
-# INPUT_PATH = r"D:\Research data\SSID\202403\20240311 CMS b45 NbAlCu\saxs\analysis\b45-05_NbAlCu__0.055_0.008"
-# CONFIG_FILE = r"D:\Research data\SSID\202403\20240311 CMS b45 NbAlCu\saxs\analysis\b45-05_NbAlCu__0.055_0.008\Plot\b45-05_NbAlCu_th025_17613.ini"
+# INPUT_PATH = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b59-03-CrCuNiCr-AE_Tc"
+# CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b59-03-CrCuNiCr-AE_Tc\Plot\b59-03-CrCuNiCr-AE.ini"
 
 # GIWAXS
-INPUT_PATH = r"D:\Research data\SSID\202409\20240927 CMS b5455 sandwich test\waxs\analysis\circular_average"
-CONFIG_FILE = r"D:\Research data\SSID\202409\20240927 CMS b5455 sandwich test\waxs\analysis\b54-01 ScVMnSc\b54-01_ScVMnSc_EXPTA30M.ini"
+INPUT_PATH = r"D:\Research data\SSID\202312\20231204 CMS stripe energy calibrated\waxs\analysis\circular_average_organized\STb46-05_MoTiCu_th0.5_10s"
+CONFIG_FILE = r"D:\Research data\SSID\202312\20231204 CMS stripe energy calibrated\waxs\analysis\STb46-05_MoTiCu\STb46-05_MoTiCu_th0.5.ini"
 
 # OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 # Save with config file
@@ -53,15 +53,17 @@ else:
     print("-----------------")
 
 FILE_TYPE = '.dat'  # <------------------- Check your file type ### Archive
+SCANID_INDEX = -2                                                                                    # Use scan ID to sort the files
 PATTERN = eval(CONFIG['samples']['pattern'])
 FILENAME_KEYWORD = 'th'     # b37-01_NbAlSc_ex30M_Tc110.03_345.1s_x-0.001_"th"0.250_5.00s_1171982_maxs.dat
 FILENAME_KEYWORD_OFFSET = 6     # "th"0.250
-LEGEND_HEAD_KEYWORD = 'th'
-LEGEND_TAIL_KEYWORD = '0_10'
+LEGEND_HEAD_KEYWORD = 'x'
+LEGEND_TAIL_KEYWORD = '0_th'
 ANGLE_RANGE = eval(CONFIG['samples']['angle_range'])
 SAMPLE_LIST = eval(CONFIG['samples']['sample_list'])
 SAXS_COLUMN_NAME = ['#', 'qr', 'I']                                                                  # May be updated
-WAXS_COLUMN_NAME = ['#', 'q', 'I(q)err', 'q']                                                        # May be updated, then update: data_dict['I_list'][index] = dataframe[:, 1]
+WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)']                                                        # 2024-3 update to data_dict['I_list'][index] = dataframe[:, 2]
+# WAXS_COLUMN_NAME = ['#', 'q', 'I(q)err', 'q']                                                      # May be updated, then update: data_dict['I_list'][index] = dataframe[:, 1]
 # WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)']                                                      # Before 2023
 DIOPTAS_COLUMN_NAME = ['#', 'q_A^-1', 'I']
 FIGURE_SIZE = eval(CONFIG['format']['figure_size'])
@@ -91,6 +93,9 @@ def main():
     else:
         files = Path(INPUT_PATH).glob(f'*{PATTERN}')    # Call Path again to grab the file
 
+        # Sort the filename by scan ID:
+        files = sorted(files, key=lambda x: int(x.name.split('_')[SCANID_INDEX]))
+
     if not OUTPUT_PATH.exists() and OUTPUT_FOR_JADE:
         OUTPUT_PATH.mkdir()    # Create an output folder to save all generated data/files
 
@@ -110,9 +115,12 @@ def main():
 
 def giwaxs(files):
     q_and_I_list = sorted_data(files, mode=ANGLE_RANGE)
-    # background_subtraction(q_and_I_list, degree=5)   # Add a new list with background subtraction
-    giwaxs_plot(q_and_I_list)
-    # giwaxs_plot(q_and_I_list, mode='bg_sub')
+    if SUB_DEGREE != 0:
+        background_subtraction(q_and_I_list, degree=SUB_DEGREE)   # Add a new list with background subtraction
+        giwaxs_plot(q_and_I_list, mode='bg_sub')
+    else:
+        giwaxs_plot(q_and_I_list)
+
 
 
 def gisaxs(files):
@@ -136,9 +144,9 @@ def sorted_data(files, mode=ANGLE_RANGE):
                                       usecols=WAXS_COLUMN_NAME).to_numpy() \
                 if scattering_data.suffix == ".dat" \
                 else pd.read_table(scattering_data, sep="\s+", usecols=DIOPTAS_COLUMN_NAME, skiprows=22).to_numpy() \
-                # '#' is q column and 'q' is I(q) column
+                # '#' is q column and 'qerr' is I(q) column
             data_dict['q_list'][index] = dataframe[:, 0]
-            data_dict['I_list'][index] = dataframe[:, 1]
+            data_dict['I_list'][index] = dataframe[:, 2]    # May be different
             if OUTPUT_FOR_JADE:
                     out_file(data_dict['q_list'][index], data_dict['I_list'][index], f'C_{scattering_data.name}')
         elif mode == 'small':
@@ -153,6 +161,7 @@ def sorted_data(files, mode=ANGLE_RANGE):
 
         # if index == 0:
         #     pprint(data_dict)
+
     return data_dict
 
 
@@ -515,7 +524,7 @@ def out_file(q, intensity, filename):
     print('=================================================================================')
     # short_filename = filename[:filename.find('_pos1')] + '-xposi' + filename[filename.find("_x") + 2:filename.find(
     #     "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6] + '.xy'
-    short_filename = filename[:filename.find(FILENAME_KEYWORD)+FILENAME_KEYWORD_OFFSET] + '.xy'   # <--- Modify this line to change the output filename
+    short_filename = filename[:filename.find(FILENAME_KEYWORD)+FILENAME_KEYWORD_OFFSET] + '_q' + '.xy'   # <--- Modify this line to change the output filename
     print(f'Converting CMS GIWAXS data to --> {short_filename}')
     output_filename = OUTPUT_PATH / short_filename
     with open(output_filename, 'w') as out:
