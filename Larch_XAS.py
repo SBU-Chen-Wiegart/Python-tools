@@ -7,14 +7,13 @@ Github source: https://github.com/xraypy/xraylarch
 Color palettes for Python: https://jiffyclub.github.io/palettable/#palette-interface
 """
 print('Import packages...')
-# from rich.progress import track
 import time
 import numpy as np
 from pathlib import Path, PureWindowsPath
 import matplotlib.pyplot as plt
 print('Import xraydb package...')
 from xraydb import guess_edge, xray_edge
-print('Import larch.xafs package...')
+print('Import larch package...')
 from larch.xafs import pre_edge, find_e0
 from larch.io import read_ascii, write_ascii, merge_groups, read_athena, create_athena, write_group
 import athena_project
@@ -22,36 +21,40 @@ import palettable as pltt
 from collections import defaultdict
 from pprint import pprint
 import configparser
+import matplotlib
+print("Before, Backend used by matplotlib is: ", matplotlib.get_backend())
+matplotlib.rcParams['backend'] = 'wxAgg'
+print("After, Backend used by matplotlib is: ", matplotlib.get_backend())
 
 # Constant
 """
 FILE_TYPE instructions:
 '.prj' for merging fluorescence scans
 '' or '.dat' for merging single scan
-'.txt' for plotting scans
+'.txt' for plotting scans and you will need to have a .ini file to set up the plotting parameters
 ---------------------------------------------
 TRANSMISSION_MODE instructions:
 'Auto' is default to process the transmission data based on the notation in the raw file
 Otherwise True or False to decide what type of data you want to export (transmission or fluorescence scans)
 True for transmission scans; False for fluorescence scans
 """
-FILE_TYPE = ''   # <------------------------------------------------------------------------------------- data type
+FILE_TYPE = '.txt'   # <------------------------------------------------------------------------------------- data type
 TRANSMISSION_MODE = 'Auto'
-INPUT_PATH = r"D:\Research data\SSID\202411\20241104 BMM AE\Ni-b59-03-CrCuNiCr-AE"    # <----------------------- Data folder input
+INPUT_PATH = r"D:\Research data\SSID\202411\20241104 BMM AE\Ni-b59-03-CrCuNiCr-AE\Output_files"    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
 # Merged Constant
-SKIP_SCANS = ['Nb_b47_01_NbAlSc_SP_Pristine_003']  # [] if scans are good or just add scans you want to exclude
+SKIP_SCANS = ['Mn_b58_04_ScVMnSc_AE_19p858000000000004_300_002']  # [] if scans are good or just add scans you want to exclude
 IF_NOR = False                                     # Do normalization for fluorescence scans
 ADD_DEV = False                                    # Add plus and minus standard deviation lines for fluorescence scans
-SHOW_DATA_INFORMATION = True                      # List athena parameters, such as atomic symbol, edge, label, etc.
+SHOW_DATA_INFORMATION = False                      # List athena parameters, such as atomic symbol, edge, label, etc.
 
 # Plot Constant for .txt
 """
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\SSID\202406\20240611 BMM b5253\Nb\b52_ScNbAlSc\Output_files\Nb-b52-01-ScNbAlSc-PTA.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
+CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 BMM AE\Ni-b59-03-CrCuNiCr-AE\Output_files\Ni-b59-03-CrCuNiCr-AE - deriv.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
 
 config = configparser.ConfigParser()
 if Path(CONFIG_FILE).is_file():
@@ -83,7 +86,7 @@ ENERGY_INTERVAL = eval(config['format']['energy_interval']) if is_ini else 0    
 IF_SAVE = eval(config['format']['if_save']) if is_ini else True                                           # Save the plot or not
 OUTPUT_FILENAME = eval(config['format']['output_filename']) if is_ini else "Default"
 NUM_COLUMN = 2
-DETECTOR_INDEX_HEAD, DETECTOR_INDEX_TAIL = 7, 14    # 2024 cycle 3 updated number of detectors from 4 to 7
+DETECTOR_INDEX_HEAD, DETECTOR_INDEX_TAIL = 7, 11    # 2024 cycle 3 updated number of detectors from 4 to 7
 
 
 def main():
@@ -110,8 +113,8 @@ def main():
         # Create a group prj containing all sample data
         create_transmission_prj_group(new_merge_project)
 
-        delete_multiple_file_types(OUTPUT_PATH,
-                                   extensions=["*merged*", "*reference*"])
+        # delete_multiple_file_types(OUTPUT_PATH,
+        #                            extensions=["*merged*", "*reference*"])
 
 
 def plot_xas(files):
@@ -134,7 +137,7 @@ def plot_xas(files):
     file = read_ascii(f_list[FILE_INDEX])
     file_keys = file.__dir__()  # Make a list
     for index, key in enumerate(file_keys):
-        print(index, key)
+        print(f'{index:>2} {key}')
 
     energy = getattr(file, file_keys[6])
 
@@ -157,7 +160,7 @@ def plot_xas(files):
             mu = getattr(file, file_keys[sample_index])
             ax1.plot(energy, mu + OFFSET * increment, linewidth=LINEWIDTH, color=CMAP(color_idx[increment+COLOR_INCREMENT]), label=sample_label)
             increment += 1
-            print('{:>3}     {}'.format(sample_index, sample_name))
+            print('{:>2} {}'.format(sample_index, sample_name))
     else:
         color_idx = np.linspace(0, 1, len(SAMPLE_LIST)+COLOR_INCREMENT)   # Only the plots you want their own color
         for sample_index in SAMPLE_LIST:
@@ -172,7 +175,7 @@ def plot_xas(files):
             else:
                 ax1.plot(energy, mu + OFFSET * increment, linewidth=LINEWIDTH, color=CMAP(color_idx[increment+COLOR_INCREMENT]), label=sample_label)
             increment += 1
-            print('{:>3}     {}'.format(sample_index, sample_name))
+            print('{:>2} {}'.format(sample_index, sample_name))
 
     # Frame linewidth
     spineline = ['left', 'right', 'top', 'bottom']
@@ -196,7 +199,7 @@ def plot_xas(files):
     # plt.yticks([])  # Disable ticks
     ax1.tick_params(width=FRAMELINEWIDTH)
     ax1.set_xlabel(x_label, fontsize=18)
-    ax1.set_ylabel(y_label, fontsize=18)
+    ax1.set_ylabel(y_label, fontsize=18, labelpad=10)
     # plt.rcParams["axes.linewidth"] = 5
     plt.legend(loc='lower right', framealpha=1, frameon=False, fontsize=14, ncol=NUM_COLUMN, reverse=True)
     plt.tight_layout()
