@@ -3,6 +3,7 @@ File: CMS GIWAXS AND GISAXS
 Name: Cheng-Chu Chung
 TODO: Auto import ref peaks from PDF card data, then put data into dictionary
 ----------------------------------------
+Color palettes for Python: https://jiffyclub.github.io/palettable/#palette-interface
 """
 
 from pathlib import Path, PurePath, PureWindowsPath
@@ -15,7 +16,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 from scipy import signal
-import os
 import configparser
 import palettable as pltt
 import peakutils
@@ -26,16 +26,18 @@ print("After, Backend used by matplotlib is: ", matplotlib.get_backend())
 
 # Step 1: Give your data directory
 # GISAXS
-# INPUT_PATH = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b59-03-CrCuNiCr-AE_Tc"
-# CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b59-03-CrCuNiCr-AE_Tc\Plot\b59-03-CrCuNiCr-AE.ini"
+# INPUT_PATH = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b59-03-CrCuNiCr-AE_afterAE"
+# CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b59-03-CrCuNiCr-AE_afterAE\Plot\b59-03-CrCuNiCr-afterAE-SAXS.ini"
 
 # GIWAXS
-INPUT_PATH = r"D:\Research data\SSID\202312\20231204 CMS stripe energy calibrated\waxs\analysis\circular_average_organized\STb46-05_MoTiCu_th0.5_10s"
-CONFIG_FILE = r"D:\Research data\SSID\202312\20231204 CMS stripe energy calibrated\waxs\analysis\STb46-05_MoTiCu\STb46-05_MoTiCu_th0.5.ini"
+INPUT_PATH = r"D:\Research data\SSID\202503\20250304 CMS b6062 AE\maxs\analysis\b60-01-CuMoTiCu-AE_afterAE_xscan\circular_average"
+CONFIG_FILE = r"D:\Research data\SSID\202503\20250304 CMS b6062 AE\maxs\analysis\b60-01-CuMoTiCu-AE_afterAE_xscan\b60-01-CuMoTiCu-AE_afterAE_xscan.ini"
 
 # OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 # Save with config file
 OUTPUT_PATH = Path(f'{PureWindowsPath(CONFIG_FILE).parent}\Output_files_{PureWindowsPath(CONFIG_FILE).stem}')
+# If you are the Mac user, please change the above line to:
+# OUTPUT_PATH = Path(CONFIG_FILE).parent / f'Output_files_{Path(CONFIG_FILE).stem}'
 
 # Step 2: Confirm your config file
 CONFIG = configparser.ConfigParser()
@@ -52,13 +54,13 @@ else:
     print("Manually input so please remove all eval commands if error occurs or file is not found")
     print("-----------------")
 
-FILE_TYPE = '.dat'  # <------------------- Check your file type ### Archive
+# FILE_TYPE = '.dat'                                                                                   # Check your file type ### Archive
 SCANID_INDEX = -2                                                                                    # Use scan ID to sort the files
 PATTERN = eval(CONFIG['samples']['pattern'])
-FILENAME_KEYWORD = 'th'     # b37-01_NbAlSc_ex30M_Tc110.03_345.1s_x-0.001_"th"0.250_5.00s_1171982_maxs.dat
-FILENAME_KEYWORD_OFFSET = 6     # "th"0.250
+FILENAME_KEYWORD = 'th'                                                                              # b37-01_NbAlSc_ex30M_Tc110.03_345.1s_x-0.001_"th"0.250_5.00s_1171982_maxs.dat
+FILENAME_KEYWORD_OFFSET = 6                                                                          # "th"0.250
 LEGEND_HEAD_KEYWORD = 'x'
-LEGEND_TAIL_KEYWORD = '0_th'
+LEGEND_TAIL_KEYWORD = '_th'
 ANGLE_RANGE = eval(CONFIG['samples']['angle_range'])
 SAMPLE_LIST = eval(CONFIG['samples']['sample_list'])
 SAXS_COLUMN_NAME = ['#', 'qr', 'I']                                                                  # May be updated
@@ -133,20 +135,45 @@ def sorted_data(files, mode=ANGLE_RANGE):
     for index, file in enumerate(files):
         scattering_data = file.resolve()  # Make the path absolute, resolving any symlinks
         data_dict['filename_list'][index] = scattering_data.name
-        print(index, scattering_data.name)
+        print(f'{index:>2} {scattering_data.name}')
         if mode == 'wide':
-            # --------------------------------------------------- Before 2023 version
             # dataframe = pd.read_table(scattering_data, sep="\s+",
-            #                           usecols=['#', 'q', 'qerr', 'I(q)'])\
-            #     .to_numpy()  # '#' is q column and 'qerr' is I(q) column
-            # ----------------------------------------------------
-            dataframe = pd.read_table(scattering_data, sep="\s+",
-                                      usecols=WAXS_COLUMN_NAME).to_numpy() \
-                if scattering_data.suffix == ".dat" \
-                else pd.read_table(scattering_data, sep="\s+", usecols=DIOPTAS_COLUMN_NAME, skiprows=22).to_numpy() \
-                # '#' is q column and 'qerr' is I(q) column
-            data_dict['q_list'][index] = dataframe[:, 0]
-            data_dict['I_list'][index] = dataframe[:, 2]    # May be different
+            #                           usecols=WAXS_COLUMN_NAME).to_numpy() \
+            #     if scattering_data.suffix == ".dat" \
+            #     else pd.read_table(scattering_data, sep="\s+", usecols=DIOPTAS_COLUMN_NAME, skiprows=22).to_numpy() \
+            #     # '#' is q column and 'qerr' is I(q) column
+            # data_dict['q_list'][index] = dataframe[:, 0]
+            # data_dict['I_list'][index] = dataframe[:, 2]          # WAXS column may be different
+
+            # Determine which columns to use and how many rows to skip based on file extension
+            if scattering_data.suffix == ".dat":
+                columns_to_use = WAXS_COLUMN_NAME                   # WAXS column may be different
+                skip_rows = 0
+                intensity_col_index = 2                             # I(q) is in the third column
+            else:
+                columns_to_use = DIOPTAS_COLUMN_NAME
+                skip_rows = 22
+                intensity_col_index = 1                             # I(q) is in the second column
+
+            # Read the file into a DataFrame
+            df = pd.read_table(
+                scattering_data,
+                sep=r"\s+",
+                usecols=columns_to_use,
+                skiprows=skip_rows
+            )
+
+            # Convert DataFrame to NumPy array
+            data_array = df.to_numpy()
+
+            # Extract q and I(q) values
+            q_values = data_array[:, 0]
+            intensity_values = data_array[:, intensity_col_index]
+
+            # Store the results in the dictionary
+            data_dict['q_list'][index] = q_values
+            data_dict['I_list'][index] = intensity_values
+
             if OUTPUT_FOR_JADE:
                     out_file(data_dict['q_list'][index], data_dict['I_list'][index], f'C_{scattering_data.name}')
         elif mode == 'small':
@@ -171,11 +198,14 @@ def background_subtraction(q_and_I_list, degree=3):
     :return: None
     """
     # list_dict = sorted_data()
+    print('\n'+'='*50)
+    print(f'Background subtraction was applied with degree = {degree}')
+    print('-'*50)
     for index in q_and_I_list['q_list']:
         x = q_and_I_list['q_list'][index]
         y = q_and_I_list['I_list'][index]
         filename = q_and_I_list['filename_list'][index]
-        print(index, filename)
+        # print(f'{index:>2} {filename}')
         # pos = filename[filename.find('pos'):filename.find('pos') + 4]
         base_line = peakutils.baseline(y, degree)  # generate baseline
         y_corrected = y - base_line  # subtract baseline from y-values
@@ -201,7 +231,7 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
         elif mode == 'bg_sub':
             y = q_and_I_list['background_subtraction_list'][index]
         filename = q_and_I_list['filename_list'][index]
-        print(index, filename)
+        print(f'{index:>2} {filename}')
 
         # Plot label
         curve_info = filename[filename.find('_') + 1:filename.find('_', 3)]
@@ -249,7 +279,7 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
     plt.xlabel('q ($\mathregular{\AA}^{-1}$)', fontsize=18)
     plt.ylabel('I(q)', fontsize=18, labelpad=10)
     plt.xticks(fontsize=14)
-    plt.yticks([])  # Disable ticks
+    # plt.yticks([])  # Disable ticks
     ax.tick_params(width=3)
     if len(XRANGE) != 0:
         plt.xlim(XRANGE[0], XRANGE[1])
@@ -260,7 +290,11 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
     # ax.set_aspect('auto')    # Aspect ratio
     plt.tight_layout()
     if IF_SAVE:
+        plt.yticks([])  # Disable ticks
+        plt.tight_layout()
         config_file_location = PureWindowsPath(CONFIG_FILE).parent
+        # If you are the Mac user, please change the above line to:
+        # config_file_location = Path(CONFIG_FILE).parent
         output_filename = check_filename_repetition(title, config_file_location)
         plt.savefig("{}/{}.png".format(config_file_location, output_filename), dpi=300, transparent=False)
     plt.show()
@@ -281,7 +315,7 @@ def gisaxs_plot(q_and_I_list, mode='Intensity', xrange=(0.004, 0.1), yrange=(0, 
         x = q_and_I_list['q_list'][index]
         y = q_and_I_list['I_list'][index]
         filename = q_and_I_list['filename_list'][index]
-        print(index, filename)
+        print(f'{index:>2} {filename}')
 
         # Plot label
         curve_info = filename[filename.find('_') + 1:filename.find('_', 3)]
@@ -396,6 +430,8 @@ def gisaxs_plot(q_and_I_list, mode='Intensity', xrange=(0.004, 0.1), yrange=(0, 
     plt.tight_layout()
     if IF_SAVE:
         config_file_location = PureWindowsPath(CONFIG_FILE).parent
+        # If you are the Mac user, please change the above line to:
+        # config_file_location = Path(CONFIG_FILE).parent
         output_filename = check_filename_repetition(title, config_file_location)
         plt.savefig("{}/{}.png".format(config_file_location, output_filename), dpi=300, transparent=False)
     plt.show()
