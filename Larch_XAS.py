@@ -17,11 +17,13 @@ print('Import larch package...')
 from larch.xafs import pre_edge, find_e0
 from larch.io import read_ascii, write_ascii, merge_groups, read_athena, create_athena, write_group
 import athena_project
+from athena_project import read_athena
 import palettable as pltt
 from collections import defaultdict
 from pprint import pprint
 import configparser
 import matplotlib
+import re
 print("Before, Backend used by matplotlib is: ", matplotlib.get_backend())
 matplotlib.rcParams['backend'] = 'wxAgg'
 print("After, Backend used by matplotlib is: ", matplotlib.get_backend())
@@ -40,7 +42,7 @@ True for transmission scans; False for fluorescence scans
 """
 FILE_TYPE = '.txt'   # <------------------------------------------------------------------------------------- data type
 TRANSMISSION_MODE = 'Auto'
-INPUT_PATH = r"D:\Research data\SSID\202411\20241104 BMM AE\Ni-b59-03-CrCuNiCr-AE\Output_files"    # <----------------------- Data folder input
+INPUT_PATH = r"D:\Research data\SSID\202411\20241104 BMM AE\Mn-b58-04-ScVMnSc-AE-afterAE\Output_files"    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
 # Merged Constant
@@ -54,7 +56,7 @@ SHOW_DATA_INFORMATION = False                      # List athena parameters, suc
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 BMM AE\Ni-b59-03-CrCuNiCr-AE\Output_files\Ni-b59-03-CrCuNiCr-AE - deriv.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
+CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 BMM AE\Mn-b58-04-ScVMnSc-AE-afterAE\Output_files\Mn-b58-04-ScVMnSc-AE-afterAE.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
 
 config = configparser.ConfigParser()
 if Path(CONFIG_FILE).is_file():
@@ -83,11 +85,13 @@ OFFSET = eval(config['format']['offset']) if is_ini else 0                      
 ENERGY_RANGE = eval(config['format']['energy_range']) if is_ini else ()                                   # () for default, (18900, 19150) for Nb, (4425, 4625) for Sc
 Y_RANGE = eval(config['format']['y_range']) if is_ini else ()                                             # () for default
 ENERGY_INTERVAL = eval(config['format']['energy_interval']) if is_ini else 0                              # This parameter works only when you set a ENERGY_RANGE
-IF_SAVE = eval(config['format']['if_save']) if is_ini else True                                           # Save the plot or not
+# IF_SAVE = eval(config['format']['if_save']) if is_ini else True                                           # Save the plot or not
 OUTPUT_FILENAME = eval(config['format']['output_filename']) if is_ini else "Default"
-NUM_COLUMN = 2
-DETECTOR_INDEX_HEAD, DETECTOR_INDEX_TAIL = 7, 11    # 2024 cycle 3 updated number of detectors from 4 to 7
-
+NUM_COLUMN = 1
+DETECTOR_INDEX_HEAD, DETECTOR_INDEX_TAIL = 7, 14    # 2024 cycle 3 updated the number of detectors from 4 to 7
+ADD_REFERENCE = False # Add a reference prj file for each sample, so you can set add_reference=False if you don't want to have it
+IF_DELETE_SINGLE_PRJ = True  # Delete single prj files after merging, so you can set IF_DELETE_SIGNLE_PRJ=False if you want to keep them
+IF_SAVE = True  # Save the plot or not, so you can set IF_SAVE=False if you don't want to save the plot
 
 def main():
     files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
@@ -108,13 +112,16 @@ def main():
         # new_merge_project = athena_project.create_athena(f'default.prj')  # Call athena_project.py in current folder
 
         # Create each prj
-        create_transmission_prj(files)
+        create_transmission_prj(files, add_reference=ADD_REFERENCE)  # Sometimes the reference has, so you can set add_reference=False
 
         # Create a group prj containing all sample data
         create_transmission_prj_group(new_merge_project)
 
-        # delete_multiple_file_types(OUTPUT_PATH,
-        #                            extensions=["*merged*", "*reference*"])
+        if IF_DELETE_SINGLE_PRJ:
+            print("\n==============================")
+            print('Delete single prj files')
+            print("------------------------------")
+            delete_multiple_file_types(OUTPUT_PATH, extensions=["*merged*", "*reference*"])
 
 
 def plot_xas(files):
@@ -325,7 +332,7 @@ def merge_scan(file_prj, new_merge_project):
     plt.close()
 
 
-def create_transmission_prj(files):
+def create_transmission_prj(files, add_reference=True):
     """
     :param files: txt file, a txt file from the current folder
     :return: None
@@ -425,12 +432,24 @@ def create_transmission_prj(files):
 
         sample_name = sample_data[:-10]
 
+        # Find the float-like part using regex
+        match = re.search(r'\d+p\d+', sample_name)
+        if match:
+            float_str = match.group().replace('p', '.')
+            rounded = round(float(float_str), 4)  # round to 3 decimal places
+            rounded_str = str(rounded).replace('.', 'p')  # format back to original style
+            sample_name = sample_name.replace(match.group(), rounded_str)
+            print(sample_name)
+        else:
+            print("No float-like part found.")
+
         write_ascii("{}/{}_merged.prj".format(Path(OUTPUT_PATH), f'{sample_name}'), energy, merge,
                     label='energy mu',
                     header=['energy', 'mu'])
-        write_ascii("{}/{}_reference.prj".format(Path(OUTPUT_PATH), f'{sample_name}'), energy, reference,
-                    label='energy mu',
-                    header=['energy', 'mu'])
+        if add_reference:
+            write_ascii("{}/{}_reference.prj".format(Path(OUTPUT_PATH), f'{sample_name}'), energy, reference,
+                        label='energy mu',
+                        header=['energy', 'mu'])
 
         # Plot
         skip_times = 0
@@ -469,7 +488,7 @@ def create_transmission_prj(files):
 
 
 def create_transmission_prj_group(new_merge_project):
-    files = OUTPUT_PATH.glob(f'*.prj')  # Import input path to read prj files which have been processed
+    files = OUTPUT_PATH.glob(f'*.prj')  # Import an input path to read prj files which have been processed
     for index, file_prj in enumerate(files):
         if '.prj' in file_prj.name and 'Created' not in file_prj.name:
             group = read_ascii(f'{file_prj}')  # <------------------------- take care, not read_athena
@@ -481,7 +500,7 @@ def create_transmission_prj_group(new_merge_project):
                 print("------------------------------")
                 show_data_information(group)
 
-            # Replace special characters because they might cause error
+            # Replace special characters because they might cause an error
             sample_name = f'{group.filename}'.replace('-', '_').replace('(', '').replace(')', '').replace('.', 'p')
             print(sample_name)
             new_merge_project.add_group(group, sample_name)
