@@ -20,18 +20,25 @@ import configparser
 import palettable as pltt
 import peakutils
 import matplotlib
+import sys
+
+from torch.backends.quantized import engine
+
 print("Before, Backend used by matplotlib is: ", matplotlib.get_backend())
 matplotlib.rcParams['backend'] = 'wxAgg'
 print("After, Backend used by matplotlib is: ", matplotlib.get_backend())
 
 # Step 1: Give your data directory
 # GISAXS
-# INPUT_PATH = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b59-03-CrCuNiCr-AE_afterAE"
-# CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b59-03-CrCuNiCr-AE_afterAE\Plot\b59-03-CrCuNiCr-afterAE-SAXS.ini"
+# INPUT_PATH = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b58-04-ScVMnSc-AE_afterAE"
+# CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b58-04-ScVMnSc-AE_afterAE\Plot\b58-04-ScVMnSc-AE_afterAE-SAXS.ini"
 
 # GIWAXS
-INPUT_PATH = r"D:\Research data\SSID\202503\20250304 CMS b6062 AE\maxs\analysis\b60-01-CuMoTiCu-AE_afterAE_xscan\circular_average"
-CONFIG_FILE = r"D:\Research data\SSID\202503\20250304 CMS b6062 AE\maxs\analysis\b60-01-CuMoTiCu-AE_afterAE_xscan\b60-01-CuMoTiCu-AE_afterAE_xscan.ini"
+INPUT_PATH = r"D:\Research data\SSID\202411\20241104 CMS AE\maxs\analysis\b58-04-ScVMnSc-AE_Tc\circular_average"
+CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 CMS AE\maxs\analysis\b58-04-ScVMnSc-AE_Tc\b58-04-ScVMnSc-AE_insitu.ini"
+
+OUTPUT_FOR_JADE = True
+IF_SAVE = False
 
 # OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 # Save with config file
@@ -57,14 +64,14 @@ else:
 # FILE_TYPE = '.dat'                                                                                   # Check your file type ### Archive
 SCANID_INDEX = -2                                                                                    # Use scan ID to sort the files
 PATTERN = eval(CONFIG['samples']['pattern'])
-FILENAME_KEYWORD = 'th'                                                                              # b37-01_NbAlSc_ex30M_Tc110.03_345.1s_x-0.001_"th"0.250_5.00s_1171982_maxs.dat
+FILENAME_KEYWORD = '_Tc'                                                                              # b37-01_NbAlSc_ex30M_Tc110.03_345.1s_x-0.001_"th"0.250_5.00s_1171982_maxs.dat
 FILENAME_KEYWORD_OFFSET = 6                                                                          # "th"0.250
 LEGEND_HEAD_KEYWORD = 'x'
 LEGEND_TAIL_KEYWORD = '_th'
 ANGLE_RANGE = eval(CONFIG['samples']['angle_range'])
 SAMPLE_LIST = eval(CONFIG['samples']['sample_list'])
 SAXS_COLUMN_NAME = ['#', 'qr', 'I']                                                                  # May be updated
-WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)']                                                        # 2024-3 update to data_dict['I_list'][index] = dataframe[:, 2]
+WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)', 'I(q)err']                                                        # 2024-3 update to data_dict['I_list'][index] = dataframe[:, 2]
 # WAXS_COLUMN_NAME = ['#', 'q', 'I(q)err', 'q']                                                      # May be updated, then update: data_dict['I_list'][index] = dataframe[:, 1]
 # WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)']                                                      # Before 2023
 DIOPTAS_COLUMN_NAME = ['#', 'q_A^-1', 'I']
@@ -81,8 +88,8 @@ XRANGE = eval(CONFIG['format']['xrange'])
 YRANGE = eval(CONFIG['format']['yrange'])
 LEGEND_LOCATION = eval(CONFIG['format']['legend_location'])
 TITLE = eval(CONFIG['format']['output_filename'])
-OUTPUT_FOR_JADE = eval(CONFIG['format']['output_for_jade'])
-IF_SAVE = eval(CONFIG['format']['if_save'])
+# OUTPUT_FOR_JADE = eval(CONFIG['format']['output_for_jade'])
+# IF_SAVE = eval(CONFIG['format']['if_save'])
 SUB_DEGREE = eval(CONFIG['data_processing']['bgsub_degree'])
 
 
@@ -98,8 +105,8 @@ def main():
         # Sort the filename by scan ID:
         files = sorted(files, key=lambda x: int(x.name.split('_')[SCANID_INDEX]))
 
-    if not OUTPUT_PATH.exists() and OUTPUT_FOR_JADE:
-        OUTPUT_PATH.mkdir()    # Create an output folder to save all generated data/files
+    if OUTPUT_FOR_JADE:
+        OUTPUT_PATH.mkdir(exist_ok=True)  # Creates the folder only if it doesn't exist
 
     if ANGLE_RANGE == 'wide':
         print('=============================================')
@@ -159,8 +166,12 @@ def sorted_data(files, mode=ANGLE_RANGE):
             df = pd.read_table(
                 scattering_data,
                 sep=r"\s+",
-                usecols=columns_to_use,
-                skiprows=skip_rows
+                # usecols=columns_to_use,
+                # skiprows=skip_rows,
+                comment="#",                # Skip comment lines starting with #
+                header=None,                # Don't use the first row as column headers
+                names=columns_to_use[1:],   # Use the second column name as header
+                index_col=False             # Ensure the first column is not used as the index
             )
 
             # Convert DataFrame to NumPy array
@@ -176,6 +187,7 @@ def sorted_data(files, mode=ANGLE_RANGE):
 
             if OUTPUT_FOR_JADE:
                     out_file(data_dict['q_list'][index], data_dict['I_list'][index], f'C_{scattering_data.name}')
+
         elif mode == 'small':
             dataframe = pd.read_table(scattering_data, sep="\s+",
                                       usecols=SAXS_COLUMN_NAME) \
@@ -558,9 +570,11 @@ def out_file(q, intensity, filename):
     :return: None
     """
     print('=================================================================================')
-    # short_filename = filename[:filename.find('_pos1')] + '-xposi' + filename[filename.find("_x") + 2:filename.find(
-    #     "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6] + '.xy'
-    short_filename = filename[:filename.find(FILENAME_KEYWORD)+FILENAME_KEYWORD_OFFSET] + '_q' + '.xy'   # <--- Modify this line to change the output filename
+    # Shorten the filename for q output
+    parts = filename.split('_')
+    base_name = filename[:filename.find(FILENAME_KEYWORD)]
+    short_filename = f"{base_name}_{parts[-6]}_{parts[-5]}_{parts[-4]}_{parts[-2]}_q.xy"
+
     print(f'Converting CMS GIWAXS data to --> {short_filename}')
     output_filename = OUTPUT_PATH / short_filename
     with open(output_filename, 'w') as out:
@@ -568,15 +582,17 @@ def out_file(q, intensity, filename):
         for i in range(len(q)):
             out.write(str('{:.5f}'.format(q[i]))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
 
-    # short_filename = filename[:filename.find('_pos1')] + '-xposi' + filename[filename.find("_x") + 2:filename.find(
-    #     "_x") + 6] + '-' + filename[filename.find('th'):filename.find('th') + 6] + 'tth' + '.xy'
-    short_filename = filename[:filename.find(FILENAME_KEYWORD)+FILENAME_KEYWORD_OFFSET] + '_tth' + '.xy'   # <--- Modify this line also
+    # Shorten the filename for 2theta output
+    parts = filename.split('_')
+    base_name = filename[:filename.find(FILENAME_KEYWORD)]
+    short_filename = f"{base_name}_{parts[-6]}_{parts[-5]}_{parts[-4]}_{parts[-2]}_tth.xy"
+
     print(f'Converting CMS GIWAXS data to --> {short_filename}')
     output_filename = OUTPUT_PATH / short_filename
     with open(output_filename, 'w') as out:
         out.write('tth I(tth)\n')
         for i in range(len(q)):
-            tth = 2 * np.arcsin(q[i] * 1.5406 / 4 / np.pi) * 180 / np.pi    # 0.9184, 1.5406
+            tth = 2 * np.arcsin(q[i] * 1.5406 / 4 / np.pi) * 180 / np.pi    # 0.9184, 1.5406 q = 4*pi*sin(theta)/lambda
             out.write(str('{:.5f}'.format(tth))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
     print('=================================================================================')
 
