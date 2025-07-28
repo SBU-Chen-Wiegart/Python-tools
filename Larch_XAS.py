@@ -42,7 +42,7 @@ True for transmission scans; False for fluorescence scans
 """
 FILE_TYPE = '.txt'   # <------------------------------------------------------------------------------------- data type
 TRANSMISSION_MODE = 'Auto'
-INPUT_PATH = r"D:\Research data\SSID\202411\20241104 BMM AE\Mn-b58-04-ScVMnSc-AE-afterAE\Output_files"    # <----------------------- Data folder input
+INPUT_PATH = r"D:\Research data\SSID\202507\20250703 BMM EXAFS\Cr\Output_files"    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
 # Merged Constant
@@ -56,7 +56,8 @@ SHOW_DATA_INFORMATION = False                      # List athena parameters, suc
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 BMM AE\Mn-b58-04-ScVMnSc-AE-afterAE\Output_files\Mn-b58-04-ScVMnSc-AE-afterAE.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
+CONFIG_FILE = r"D:\Research data\SSID\202507\20250703 BMM EXAFS\Cr\Output_files\Cr-b65-CrCuNiCr.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
+IF_SAVE = True  # Save the plot or not, so you can set IF_SAVE=False if you don't want to save the plot
 
 config = configparser.ConfigParser()
 if Path(CONFIG_FILE).is_file():
@@ -89,9 +90,8 @@ ENERGY_INTERVAL = eval(config['format']['energy_interval']) if is_ini else 0    
 OUTPUT_FILENAME = eval(config['format']['output_filename']) if is_ini else "Default"
 NUM_COLUMN = 1
 DETECTOR_INDEX_HEAD, DETECTOR_INDEX_TAIL = 7, 14    # 2024 cycle 3 updated the number of detectors from 4 to 7
-ADD_REFERENCE = False # Add a reference prj file for each sample, so you can set add_reference=False if you don't want to have it
+ADD_REFERENCE = True # Add a reference prj file for each sample, so you can set add_reference=False if you don't want to have it
 IF_DELETE_SINGLE_PRJ = True  # Delete single prj files after merging, so you can set IF_DELETE_SIGNLE_PRJ=False if you want to keep them
-IF_SAVE = True  # Save the plot or not, so you can set IF_SAVE=False if you don't want to save the plot
 
 def main():
     files = Path(INPUT_PATH).glob(f'*{FILE_TYPE}')
