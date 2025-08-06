@@ -9,7 +9,7 @@ Color palettes for Python: https://jiffyclub.github.io/palettable/#palette-inter
 print('Import packages...')
 import time
 import numpy as np
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 import matplotlib.pyplot as plt
 print('Import xraydb package...')
 from xraydb import guess_edge, xray_edge
@@ -24,6 +24,7 @@ from pprint import pprint
 import configparser
 import matplotlib
 import re
+from colorama import Fore, Back, Style, init
 print("Before, Backend used by matplotlib is: ", matplotlib.get_backend())
 matplotlib.rcParams['backend'] = 'wxAgg'
 print("After, Backend used by matplotlib is: ", matplotlib.get_backend())
@@ -42,7 +43,7 @@ True for transmission scans; False for fluorescence scans
 """
 FILE_TYPE = '.txt'   # <------------------------------------------------------------------------------------- data type
 TRANSMISSION_MODE = 'Auto'
-INPUT_PATH = r"D:\Research data\SSID\202507\20250703 BMM EXAFS\Cr\Output_files"    # <----------------------- Data folder input
+INPUT_PATH = r"D:\Research data\SSID\202411\20241104 BMM AE\Mn-b58-04-ScVMnSc-AE\Output_files"    # <----------------------- Data folder input
 OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 
 # Merged Constant
@@ -56,7 +57,7 @@ SHOW_DATA_INFORMATION = False                      # List athena parameters, suc
 You could set FILE_INDEX = 0, SAMPLE_LIST = [], STANDARD_LIST = [], 
 SAMPLE_LABEL = [], ENERGY_RANGE = () as a default for your first try.
 """
-CONFIG_FILE = r"D:\Research data\SSID\202507\20250703 BMM EXAFS\Cr\Output_files\Cr-b65-CrCuNiCr.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
+CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 BMM AE\Mn-b58-04-ScVMnSc-AE\Output_files\Mn-b58-04-ScVMnSc-AE.ini"   # <-------------------- .ini setting for plotting or leave it blank for data preprocessing
 IF_SAVE = True  # Save the plot or not, so you can set IF_SAVE=False if you don't want to save the plot
 
 config = configparser.ConfigParser()
@@ -200,7 +201,7 @@ def plot_xas(files):
         ax1.set_ylim(Y_RANGE)
     plt.title(OUTPUT_FILENAME, fontsize=20, pad=15) \
         if OUTPUT_FILENAME != "" \
-        else plt.title(PureWindowsPath(CONFIG_FILE).stem, fontsize=20, pad=15)
+        else plt.title(Path(CONFIG_FILE).stem, fontsize=20, pad=15)
     x_label = r'$\mathregular{Energy\ (eV)}$'
     y_label = r'$\mathregular{Normalized\ \mu(E)}$'     # XANES normalization doesn't have x
     # plt.yticks([])  # Disable ticks
@@ -212,10 +213,10 @@ def plot_xas(files):
     plt.tight_layout()
     if IF_SAVE:
         plt.yticks([])  # Disable ticks
-        config_file_location = PureWindowsPath(CONFIG_FILE).parent
+        config_file_location = Path(CONFIG_FILE).parent
         output_filename = check_filename_repetition(OUTPUT_FILENAME, config_file_location) \
             if OUTPUT_FILENAME != "" \
-            else check_filename_repetition(PureWindowsPath(CONFIG_FILE).stem, config_file_location)
+            else check_filename_repetition(Path(CONFIG_FILE).stem, config_file_location)
         plt.savefig("{}/{}.png".format(Path(config_file_location), output_filename), dpi=300, transparent=False)
     plt.show()
 
@@ -502,8 +503,16 @@ def create_transmission_prj_group(new_merge_project):
 
             # Replace special characters because they might cause an error
             sample_name = f'{group.filename}'.replace('-', '_').replace('(', '').replace(')', '').replace('.', 'p')
-            print(sample_name)
-            new_merge_project.add_group(group, sample_name)
+            print(f'Sample name: {sample_name}')
+            # new_merge_project.add_group(group, sample_name)
+            try:
+                new_merge_project.add_group(group, sample_name)
+            except Exception as e:
+                # Handle the exception and print an error message with color, Style.RESET_ALL to reset the color
+                print("\n==============================")
+                print(f"{Back.BLUE}Failed to add group {group} \n with sample {sample_name}: {e}")
+                print("------------------------------")
+                # Continue with the rest of your code
 
     new_merge_project.save(f'{OUTPUT_PATH}/Created_transmission_group.prj')
     print('=================================================================================')
@@ -593,7 +602,7 @@ def calibrate_energy(files):
                 # print('Energy after:', data.energy[0])
                 print('Energy E0 after:', find_e0(data.energy, mu=data.mu, group=data))
                 reference_checklist.append(reference_name)
-                if np.abs(energy_shift) > 5:
+                if np.abs(energy_shift) > 3:
                     print('WARNING: Energy shift is too large, please check the reference. '
                                           'Otherwise, please use Created_group.prj to do the calibration manually.')
                 print('')
