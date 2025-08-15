@@ -6,7 +6,7 @@ TODO: Auto import ref peaks from PDF card data, then put data into dictionary
 Color palettes for Python: https://jiffyclub.github.io/palettable/#palette-interface
 """
 
-from pathlib import Path, PurePath, PureWindowsPath
+from pathlib import Path
 from collections import defaultdict
 import pandas as pd
 from pprint import pprint
@@ -21,6 +21,7 @@ import palettable as pltt
 import peakutils
 import matplotlib
 import sys
+from colorama import Fore, Back, Style, init
 
 from torch.backends.quantized import engine
 
@@ -34,15 +35,15 @@ print("After, Backend used by matplotlib is: ", matplotlib.get_backend())
 # CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 CMS AE\saxs\analysis\b58-04-ScVMnSc-AE_afterAE\Plot\b58-04-ScVMnSc-AE_afterAE-SAXS.ini"
 
 # GIWAXS
-INPUT_PATH = r"D:\Research data\SSID\202411\20241104 CMS AE\maxs\analysis\b58-04-ScVMnSc-AE_Tc\circular_average"
-CONFIG_FILE = r"D:\Research data\SSID\202411\20241104 CMS AE\maxs\analysis\b58-04-ScVMnSc-AE_Tc\b58-04-ScVMnSc-AE_insitu.ini"
+INPUT_PATH = r"D:\Research data\SSID\202506\20250623 CMS CrCuNiCr AE\maxs\analysis\b57-01_x29.601_5.00s_204829_dioptas"
+CONFIG_FILE = r"D:\Research data\SSID\202506\20250623 CMS CrCuNiCr AE\maxs\analysis\b57-01_x29.601_5.00s_204829_dioptas\Plot\b57-01-CrCuNiCr.ini"
 
 OUTPUT_FOR_JADE = True
 IF_SAVE = False
 
 # OUTPUT_PATH = Path(f'{INPUT_PATH}\Output_files')
 # Save with config file
-OUTPUT_PATH = Path(f'{PureWindowsPath(CONFIG_FILE).parent}\Output_files_{PureWindowsPath(CONFIG_FILE).stem}')
+OUTPUT_PATH = Path(f'{Path(CONFIG_FILE).parent}\Output_files_{Path(CONFIG_FILE).stem}')
 # If you are the Mac user, please change the above line to:
 # OUTPUT_PATH = Path(CONFIG_FILE).parent / f'Output_files_{Path(CONFIG_FILE).stem}'
 
@@ -61,17 +62,17 @@ else:
     print("Manually input so please remove all eval commands if error occurs or file is not found")
     print("-----------------")
 
-# FILE_TYPE = '.dat'                                                                                   # Check your file type ### Archive
+# FILE_TYPE = '.dat'                                                                                 # Archive - Check your file type
 SCANID_INDEX = -2                                                                                    # Use scan ID to sort the files
 PATTERN = eval(CONFIG['samples']['pattern'])
-FILENAME_KEYWORD = '_Tc'                                                                              # b37-01_NbAlSc_ex30M_Tc110.03_345.1s_x-0.001_"th"0.250_5.00s_1171982_maxs.dat
+FILENAME_KEYWORD = '_Tc'                                                                          # Find the last index of the keyword in the filename
 FILENAME_KEYWORD_OFFSET = 6                                                                          # "th"0.250
 LEGEND_HEAD_KEYWORD = 'x'
 LEGEND_TAIL_KEYWORD = '_th'
 ANGLE_RANGE = eval(CONFIG['samples']['angle_range'])
 SAMPLE_LIST = eval(CONFIG['samples']['sample_list'])
 SAXS_COLUMN_NAME = ['#', 'qr', 'I']                                                                  # May be updated
-WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)', 'I(q)err']                                                        # 2024-3 update to data_dict['I_list'][index] = dataframe[:, 2]
+WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)', 'I(q)err']                                             # 2024-3 update to data_dict['I_list'][index] = dataframe[:, 2]
 # WAXS_COLUMN_NAME = ['#', 'q', 'I(q)err', 'q']                                                      # May be updated, then update: data_dict['I_list'][index] = dataframe[:, 1]
 # WAXS_COLUMN_NAME = ['#', 'q', 'qerr', 'I(q)']                                                      # Before 2023
 DIOPTAS_COLUMN_NAME = ['#', 'q_A^-1', 'I']
@@ -237,7 +238,11 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
     print('Plot:')
     print('---------------------------------------------')
     for index in SAMPLE_LIST:
-        x = q_and_I_list['q_list'][index]
+        try:
+            x = q_and_I_list['q_list'][index]
+        except KeyError:
+            print(f"Index {index} not found in the data folder. Please check {Style.BRIGHT}{Fore.RED}SAMPLE_LIST{Style.RESET_ALL}...")
+            return
         if mode == 'raw':
             y = q_and_I_list['I_list'][index]
         elif mode == 'bg_sub':
@@ -262,7 +267,7 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
         if TITLE != 'Auto' and TITLE != '':
             title = TITLE
         elif TITLE == '':
-            title = PureWindowsPath(CONFIG_FILE).stem
+            title = Path(CONFIG_FILE).stem
         elif incident_angle == '..':
             title = f"{filename[filename.find('th') + 2:filename.find('th') + 6]} degree"
         else:
@@ -304,7 +309,7 @@ def giwaxs_plot(q_and_I_list, mode='raw'):
     if IF_SAVE:
         plt.yticks([])  # Disable ticks
         plt.tight_layout()
-        config_file_location = PureWindowsPath(CONFIG_FILE).parent
+        config_file_location = Path(CONFIG_FILE).parent
         # If you are the Mac user, please change the above line to:
         # config_file_location = Path(CONFIG_FILE).parent
         output_filename = check_filename_repetition(title, config_file_location)
@@ -346,7 +351,7 @@ def gisaxs_plot(q_and_I_list, mode='Intensity', xrange=(0.004, 0.1), yrange=(0, 
         if TITLE != 'Auto' and TITLE != '':
             title = TITLE
         elif TITLE == '':
-            title = PureWindowsPath(CONFIG_FILE).stem
+            title = Path(CONFIG_FILE).stem
         elif incident_angle == '..':
             title = f"{filename[filename.find('th') + 2:filename.find('th') + 6]} degree"
         else:
@@ -441,7 +446,7 @@ def gisaxs_plot(q_and_I_list, mode='Intensity', xrange=(0.004, 0.1), yrange=(0, 
     plt.title(title, fontsize=18, pad=15)
     plt.tight_layout()
     if IF_SAVE:
-        config_file_location = PureWindowsPath(CONFIG_FILE).parent
+        config_file_location = Path(CONFIG_FILE).parent
         # If you are the Mac user, please change the above line to:
         # config_file_location = Path(CONFIG_FILE).parent
         output_filename = check_filename_repetition(title, config_file_location)
@@ -577,10 +582,27 @@ def out_file(q, intensity, filename):
 
     print(f'Converting CMS GIWAXS data to --> {short_filename}')
     output_filename = OUTPUT_PATH / short_filename
-    with open(output_filename, 'w') as out:
-        out.write('q I(q)\n')
-        for i in range(len(q)):
-            out.write(str('{:.5f}'.format(q[i]))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
+    try:
+        with open(output_filename, 'w') as out:
+            out.write('q I(q)\n')
+            for i in range(len(q)):
+                out.write(str('{:.5f}'.format(q[i]))+' '+str('{:.5f}'.format(intensity[i]))+'\n')
+    except Exception as e:
+        print(f"{Style.BRIGHT}{Fore.RED}Shorten your ini filename or update FILENAME_KEYWORD to avoid the error:{Style.RESET_ALL} {e}")
+
+    # Save as image
+    if PATTERN=='.xy':
+        # Use the same base to build png name, and consistently save to OUTPUT_PATH
+        short_filename_png = f"{base_name}_{parts[-6]}_{parts[-5]}_{parts[-4]}_{parts[-2]}.png"
+        output_file_png = Path(INPUT_PATH) / short_filename_png
+
+        plt.figure()
+        plt.plot(q, intensity)
+        plt.xlabel('q ($\mathregular{\AA}^{-1}$)')
+        plt.ylabel('I(q)')
+        plt.title(f'{short_filename_png[:-4]}')  # Title for context
+        plt.savefig(output_file_png, bbox_inches='tight')
+        print(f"Plot saved successfully at: {output_file_png}")
 
     # Shorten the filename for 2theta output
     parts = filename.split('_')
